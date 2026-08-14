@@ -1,4 +1,9 @@
 export const siteConfig = {
-  name: "Caiyun Next",
-  description: "可派生、可维护的 Next.js 通用项目基础模板。",
+  name: "中测云培课堂",
+  description: "面向计量与检测从业者的在线培训平台，提供公开课、线下班和混合式培训。",
+  nav: [
+    { href: "/", label: "首页" },
+    { href: "/trainings", label: "培训项目" },
+    { href: "/account", label: "个人中心" },
+  ],
 } as const;

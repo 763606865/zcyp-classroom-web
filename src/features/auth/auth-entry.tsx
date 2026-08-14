@@ -1,22 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useAuth } from "./auth-provider";
-import { SmsLoginForm } from "./sms-login-form";
 
 export function AuthEntry() {
-  const { status, user, logout } = useAuth();
-  const [open, setOpen] = useState(false);
+  const { status, user } = useAuth();
+  const pathname = usePathname();
   if (status === "loading") return <Button variant="secondary" disabled>加载会话…</Button>;
-  if (status === "authenticated") return <div className="flex items-center gap-3"><span className="text-sm text-muted-foreground">{user?.nick_name ?? user?.phone}</span><Button variant="secondary" onClick={logout}>退出</Button></div>;
-  return <Dialog open={open} onOpenChange={setOpen}>
-    <DialogTrigger asChild><Button>短信登录</Button></DialogTrigger>
-    <DialogContent>
-      <DialogTitle>登录 Caiyun</DialogTitle>
-      <DialogDescription>未注册的手机号会自动创建账号。</DialogDescription>
-      <div className="mt-6"><SmsLoginForm onSuccess={() => setOpen(false)} /></div>
-    </DialogContent>
-  </Dialog>;
+  if (status === "authenticated") {
+    return (
+      <Link href="/account" className="text-sm font-medium text-muted-foreground hover:text-foreground">
+        {user?.nick_name ?? user?.phone}
+      </Link>
+    );
+  }
+  const next = pathname && pathname !== "/login" ? `?next=${encodeURIComponent(pathname)}` : "";
+  return <Link href={`/login${next}`}><Button>登录</Button></Link>;
 }

@@ -166,7 +166,8 @@ public/                 # 静态资源
 
 | 命令 | 作用 |
 | --- | --- |
-| `pnpm dev` | 启动开发服务器（Turbopack） |
+| `pnpm dev` | 启动开发服务器（Webpack；规避 Turbopack/PostCSS 子进程重试问题） |
+| `pnpm dev:turbopack` | 使用 Turbopack 启动开发服务器（仅用于兼容性复测） |
 | `pnpm build` | 生产构建 |
 | `pnpm start` | 运行生产构建 |
 | `pnpm lint` | ESLint 检查 |
