@@ -46,7 +46,7 @@ export function SiteHeader() {
               {settings.customer_service_phone}
             </a>
           ) : null}
-          <Link href="/#lead" className="hidden sm:inline"><Button variant="accent">立即咨询</Button></Link>
+          <Link href="/consult?source=header" className="hidden sm:inline"><Button variant="accent">立即咨询</Button></Link>
           <AuthEntry />
         </div>
       </div>

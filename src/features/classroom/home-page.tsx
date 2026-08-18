@@ -10,7 +10,7 @@ import type { ClassroomHome, Teacher, TrainingCard } from "@/entities/classroom"
 import { getApiErrorMessage } from "@/lib/forms";
 import { useSystemSettings } from "@/features/system-settings/system-settings-provider";
 import { getClassroomHome } from "./api";
-import { HomeLeadBar } from "./home-lead";
+import { HomeSideDock } from "./home-lead";
 import { formatDate, formatPrice, trainingTypeLabels } from "./labels";
 import {
   campuses,
@@ -89,7 +89,7 @@ export function ClassroomHomeView() {
     : popularCourseFallbacks;
 
   return (
-    <div id="top" className="bg-background pb-28">
+    <div id="top" className="bg-background">
       <section className="bg-primary text-primary-foreground">
         <div className="mx-auto grid max-w-6xl gap-8 px-6 py-16 lg:grid-cols-2 lg:items-center">
           <div>
@@ -102,7 +102,7 @@ export function ClassroomHomeView() {
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="/trainings"><Button variant="accent">浏览培训项目</Button></Link>
-              <a href="#lead"><Button className="border-white/40 bg-white text-primary hover:bg-white/90">免费试听</Button></a>
+              <Link href="/consult?source=homepage"><Button className="border-white/40 bg-white text-primary hover:bg-white/90">免费试听</Button></Link>
             </div>
           </div>
           <CoverImage src={banner?.cover} alt="" className="min-h-64 w-full rounded-2xl bg-white/10" />
@@ -230,7 +230,7 @@ export function ClassroomHomeView() {
                         <li key={item}>· {item}</li>
                       ))}
                     </ul>
-                    <a href="#lead" className="mt-6 inline-block w-full"><Button variant="accent" className="w-full">预约试听</Button></a>
+                    <Link href="/consult?source=faculty" className="mt-6 inline-block w-full"><Button variant="accent" className="w-full">预约试听</Button></Link>
                   </Card>
                 );
               })}
@@ -300,7 +300,7 @@ export function ClassroomHomeView() {
             {faqs.map((item) => (
               <div key={item.q} className="flex items-center justify-between gap-3 rounded-full bg-white px-4 py-3 text-foreground">
                 <p className="text-sm font-medium">{item.q}</p>
-                <a href="#lead"><Button variant="accent" className="h-8 min-h-8 shrink-0 rounded-full px-3 text-xs">咨询</Button></a>
+                <Link href="/consult?source=faq"><Button variant="accent" className="h-8 min-h-8 shrink-0 rounded-full px-3 text-xs">咨询</Button></Link>
               </div>
             ))}
           </div>
@@ -339,7 +339,7 @@ export function ClassroomHomeView() {
         </div>
       </section>
 
-      <HomeLeadBar />
+      <HomeSideDock />
     </div>
   );
 }
