@@ -1,3 +1,4 @@
+import { PageShell } from "@/components/page-shell";
 import { TrainingDetailView } from "@/features/classroom/training-detail";
 
 export default async function TrainingDetailPage({
@@ -7,8 +8,8 @@ export default async function TrainingDetailPage({
 }) {
   const { slug } = await params;
   return (
-    <main>
+    <PageShell>
       <TrainingDetailView key={slug} slug={slug} />
-    </main>
+    </PageShell>
   );
 }

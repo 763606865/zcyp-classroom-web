@@ -3,7 +3,7 @@ import { LoaderCircle } from "lucide-react";
 import { cva } from "class-variance-authority";
 import { cn } from "@/lib/utils/cn";
 
-type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "accent";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean;
@@ -17,6 +17,7 @@ const buttonVariants = cva(
     secondary: "border border-border bg-surface text-foreground hover:bg-muted",
     ghost: "text-foreground hover:bg-muted",
     danger: "bg-danger text-white hover:opacity-90",
+    accent: "bg-accent text-white hover:bg-accent-hover",
   } }, defaultVariants: { variant: "primary" } },
 );
 

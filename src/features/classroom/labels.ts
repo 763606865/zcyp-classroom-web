@@ -9,6 +9,13 @@ export function formatPrice(isFree: boolean, price: string) {
   return `¥${price}`;
 }
 
+export function formatDate(value?: string | null) {
+  if (!value) return "待定";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("zh-CN", { dateStyle: "medium" }).format(date);
+}
+
 export function formatDateTime(value?: string | null) {
   if (!value) return "待定";
   const date = new Date(value);

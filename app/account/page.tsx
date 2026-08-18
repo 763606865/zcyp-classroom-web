@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PageShell } from "@/components/page-shell";
 import { AccountPageView } from "@/features/account/account-page";
 
 export const metadata: Metadata = {
@@ -7,8 +8,8 @@ export const metadata: Metadata = {
 
 export default function AccountPage() {
   return (
-    <main>
+    <PageShell>
       <AccountPageView />
-    </main>
+    </PageShell>
   );
 }
