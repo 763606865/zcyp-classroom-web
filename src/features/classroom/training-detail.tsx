@@ -53,9 +53,8 @@ export function TrainingDetailView({ slug }: { slug: string }) {
       if (!created.data.paid) {
         await payOrder(created.data.order.order_no, "mock");
       }
-      toast({ title: "报名成功", description: "可在个人中心查看我的培训。" });
-      const refreshed = await getTraining(slug);
-      setTraining(refreshed.data);
+      toast({ title: "报名成功", description: "正在打开我的培训详情。" });
+      router.push(`/account/trainings/${encodeURIComponent(slug)}`);
     } catch (err) {
       toast({ title: "报名失败", description: getApiErrorMessage(err) });
     } finally {

@@ -1,5 +1,7 @@
+import { z } from "zod";
 import {
   createOrderResponseSchema,
+  orderSchema,
   payOrderResponseSchema,
   type Order,
 } from "@/entities/classroom";
@@ -12,8 +14,15 @@ export function createTrainingOrder(trainingSlug: string, channel = "auto") {
   }, { responseSchema: createOrderResponseSchema, retry: 0 });
 }
 
+export function getOrder(orderNo: string) {
+  return apiClient.get<Order>(`/api/orders/${encodeURIComponent(orderNo)}`, {
+    responseSchema: orderSchema,
+    retry: 0,
+  });
+}
+
 export function payOrder(orderNo: string, channel = "mock") {
-  return apiClient.post(`/api/orders/${encodeURIComponent(orderNo)}/pay`, {
+  return apiClient.post<z.infer<typeof payOrderResponseSchema>>(`/api/orders/${encodeURIComponent(orderNo)}/pay`, {
     channel,
   }, { responseSchema: payOrderResponseSchema, retry: 0 });
 }

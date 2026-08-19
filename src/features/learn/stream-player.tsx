@@ -1,0 +1,88 @@
+"use client";
+
+import { useEffect, useRef } from "react";
+import Hls from "hls.js";
+
+function isHlsUrl(src: string) {
+  return src.includes(".m3u8");
+}
+
+export function StreamPlayer({
+  src,
+  startAt = 0,
+  onProgress,
+  onEnded,
+}: {
+  src: string;
+  startAt?: number;
+  onProgress?: (seconds: number) => void;
+  onEnded?: (seconds: number) => void;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const lastReported = useRef(0);
+  const onProgressRef = useRef(onProgress);
+  const onEndedRef = useRef(onEnded);
+  onProgressRef.current = onProgress;
+  onEndedRef.current = onEnded;
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    let hls: Hls | undefined;
+    lastReported.current = Math.max(0, Math.floor(startAt));
+
+    if (isHlsUrl(src) && video.canPlayType("application/vnd.apple.mpegurl")) {
+      video.src = src;
+    } else if (isHlsUrl(src) && Hls.isSupported()) {
+      hls = new Hls({ enableWorker: false });
+      hls.loadSource(src);
+      hls.attachMedia(video);
+    } else {
+      video.src = src;
+    }
+
+    const seekTo = startAt;
+    const seek = () => {
+      if (seekTo > 1 && Number.isFinite(seekTo) && seekTo < (video.duration || Number.POSITIVE_INFINITY)) {
+        video.currentTime = seekTo;
+      }
+    };
+    const flush = () => {
+      const seconds = Math.floor(video.currentTime || 0);
+      if (seconds > 0) onProgressRef.current?.(seconds);
+    };
+    const onHidden = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+    video.addEventListener("loadedmetadata", seek);
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", onHidden);
+
+    return () => {
+      flush();
+      video.removeEventListener("loadedmetadata", seek);
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", onHidden);
+      hls?.destroy();
+      video.removeAttribute("src");
+      video.load();
+    };
+  }, [src, startAt]);
+
+  return (
+    <video
+      ref={videoRef}
+      className="aspect-video w-full rounded-xl bg-black"
+      controls
+      playsInline
+      onTimeUpdate={(event) => {
+        const seconds = Math.floor(event.currentTarget.currentTime);
+        if (seconds - lastReported.current < 15) return;
+        lastReported.current = seconds;
+        onProgressRef.current?.(seconds);
+      }}
+      onPause={(event) => onProgressRef.current?.(Math.floor(event.currentTarget.currentTime))}
+      onEnded={(event) => onEndedRef.current?.(Math.floor(event.currentTarget.currentTime))}
+    />
+  );
+}

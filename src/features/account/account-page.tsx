@@ -91,7 +91,7 @@ function MyTrainingsPanel() {
       {items.map((item) => (
         <Card key={item.id} className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <Link href={`/trainings/${item.training.slug}`} className="font-semibold hover:text-primary">{item.training.title}</Link>
+            <Link href={`/account/trainings/${item.training.slug}`} className="font-semibold hover:text-primary">{item.training.title}</Link>
             <p className="mt-1 text-sm text-muted-foreground">报名时间 {formatDateTime(item.enrolled_at)}</p>
           </div>
           <span className="text-sm">{statusLabel(item.status)}</span>
@@ -124,10 +124,10 @@ function MyCoursesPanel() {
       {items.map((item) => (
         <Card key={item.id} className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="font-semibold">{item.course.title}</p>
+            <Link href={`/account/courses/${item.course.id}`} className="font-semibold hover:text-primary">{item.course.title}</Link>
             <p className="mt-1 text-sm text-muted-foreground">进度 {item.progress ?? 0}%</p>
           </div>
-          <span className="text-sm">{statusLabel(item.status)}</span>
+          <Link href={`/account/courses/${item.course.id}`} className="text-sm text-primary">去上课</Link>
         </Card>
       ))}
     </div>

@@ -28,6 +28,11 @@ export function formatDateTime(value?: string | null) {
 
 export function statusLabel(status: string) {
   const labels: Record<string, string> = {
+    pending: "待支付",
+    paid: "已支付",
+    failed: "支付失败",
+    not_started: "未开始",
+    unpublished: "未开始",
     published: "报名中",
     ongoing: "进行中",
     learning: "学习中",
@@ -44,4 +49,21 @@ export function statusLabel(status: string) {
     timeout: "已超时",
   };
   return labels[status] ?? status;
+}
+
+export function payChannelLabel(channel?: string | null) {
+  const labels: Record<string, string> = {
+    auto: "自动",
+    free: "免费开通",
+    mock: "模拟支付",
+    wechat: "微信支付",
+    alipay: "支付宝",
+  };
+  return channel ? (labels[channel] ?? channel) : "未选择";
+}
+
+export function formatAmount(amount?: string | null) {
+  if (amount == null || amount === "") return "—";
+  if (Number(amount) === 0) return "¥0.00";
+  return `¥${amount}`;
 }
