@@ -8,6 +8,24 @@ import {
 } from "@/entities/classroom";
 import { apiClient } from "@/lib/http";
 
+const favoriteCourseSchema = z.object({
+  id: z.number(),
+  created_at: z.string().nullable().optional(),
+  course: z.object({
+    id: z.number(),
+    title: z.string(),
+  }).passthrough(),
+}).passthrough();
+const myFavoritesSchema = paginatedSchema(favoriteCourseSchema);
+
+export function getMyCourseFavorites() {
+  return apiClient.get<z.infer<typeof myFavoritesSchema>>("/api/me/course-favorites", {
+    query: { per_page: 20 },
+    responseSchema: myFavoritesSchema,
+    retry: 0,
+  });
+}
+
 const myCoursesSchema = paginatedSchema(myCourseSchema);
 const myTrainingsSchema = paginatedSchema(myTrainingSchema);
 const myClassesSchema = paginatedSchema(myClassSchema);

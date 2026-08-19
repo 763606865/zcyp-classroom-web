@@ -10,11 +10,13 @@ function isHlsUrl(src: string) {
 export function StreamPlayer({
   src,
   startAt = 0,
+  autoPlay = false,
   onProgress,
   onEnded,
 }: {
   src: string;
   startAt?: number;
+  autoPlay?: boolean;
   onProgress?: (seconds: number) => void;
   onEnded?: (seconds: number) => void;
 }) {
@@ -31,14 +33,31 @@ export function StreamPlayer({
     let hls: Hls | undefined;
     lastReported.current = Math.max(0, Math.floor(startAt));
 
+    const tryPlay = () => {
+      if (!autoPlay) return;
+      const play = () => {
+        const attempt = video.play();
+        if (attempt) {
+          void attempt.catch(() => {
+            video.muted = true;
+            void video.play().catch(() => undefined);
+          });
+        }
+      };
+      play();
+    };
+
     if (isHlsUrl(src) && video.canPlayType("application/vnd.apple.mpegurl")) {
       video.src = src;
+      video.addEventListener("loadedmetadata", tryPlay, { once: true });
     } else if (isHlsUrl(src) && Hls.isSupported()) {
       hls = new Hls({ enableWorker: false });
       hls.loadSource(src);
       hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, tryPlay);
     } else {
       video.src = src;
+      video.addEventListener("loadedmetadata", tryPlay, { once: true });
     }
 
     const seekTo = startAt;
@@ -67,7 +86,7 @@ export function StreamPlayer({
       video.removeAttribute("src");
       video.load();
     };
-  }, [src, startAt]);
+  }, [autoPlay, src, startAt]);
 
   return (
     <video
@@ -75,6 +94,7 @@ export function StreamPlayer({
       className="aspect-video w-full rounded-xl bg-black"
       controls
       playsInline
+      autoPlay={autoPlay}
       onTimeUpdate={(event) => {
         const seconds = Math.floor(event.currentTarget.currentTime);
         if (seconds - lastReported.current < 15) return;

@@ -13,6 +13,11 @@ import { statusLabel } from "@/features/classroom/labels";
 import { getApiErrorMessage } from "@/lib/forms";
 import { applyLessonProgress, flattenLessons } from "./apply-progress";
 import { getCourseLearn, isVodMediaId, resolveLiveSessionId, updateLessonProgress, type LessonProgressBody } from "./api";
+import { CourseChat } from "./course-chat";
+import { CourseComments } from "./course-comments";
+import { CourseInteractions } from "./course-interactions";
+import { CourseTeacherCard } from "./course-teacher-card";
+import { CoursewarePanel } from "./courseware-panel";
 import { LiveLessonView } from "./live-lesson";
 import { StreamPlayer } from "./stream-player";
 import { VodPlayer } from "./vod-player";
@@ -124,58 +129,78 @@ export function CourseLearnView({ courseId }: { courseId: number }) {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+    <div className="grid gap-6">
       <div>
-        <p className="text-sm text-muted-foreground">
-          <Link href="/account" className="hover:text-primary">个人中心</Link>
-          <span> / 我的课程 / {data.course.title}</span>
-        </p>
-        <h1 className="mt-2 text-2xl font-semibold">{active?.title ?? data.course.title}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          总进度 {data.enrollment.progress ?? 0}% · 已完成 {data.summary.completed_lessons}/{data.summary.total_lessons} 课时
-        </p>
-        <div className="mt-4">
-          {!active ? (
-            <div className="flex aspect-video items-center justify-center rounded-xl bg-muted text-sm text-muted-foreground">暂无课时</div>
-          ) : active.type === "live" && liveSessionId ? (
-            <LiveLessonView
-              key={`${active.id}-${liveSessionId}`}
-              sessionId={liveSessionId}
-              initialSeconds={active.progress?.progress_seconds ?? 0}
-              onReport={reportLiveProgress}
-            />
-          ) : active.type === "live" && !liveSessionId ? (
-            <div className="flex aspect-video items-center justify-center rounded-xl bg-muted p-6 text-center text-sm text-muted-foreground">
-              直播课时缺少场次信息，请稍后重试或联系教务。
-            </div>
-          ) : active.type === "video" && isVodMediaId(active.media_id) ? (
-            <VodPlayer
-              key={active.id}
-              courseId={courseId}
-              lessonId={active.id}
-              startAt={resumeAt}
-              onProgress={(seconds) => reportVideoProgress(seconds)}
-              onEnded={(seconds) => reportVideoProgress(seconds || active.duration_seconds || 0, true)}
-            />
-          ) : active.media_url ? (
-            <StreamPlayer
-              key={active.id}
-              src={active.media_url}
-              startAt={resumeAt}
-              onProgress={(seconds) => reportVideoProgress(seconds)}
-              onEnded={(seconds) => reportVideoProgress(seconds || active.duration_seconds || 0, true)}
-            />
-          ) : (
-            <div className="flex aspect-video items-center justify-center rounded-xl bg-muted text-sm text-muted-foreground">
-              该课时暂无播放地址（当前支持录播视频与直播）。
-            </div>
-          )}
+        <div className="grid items-stretch gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+          <div>
+            <p className="text-sm text-muted-foreground">
+              <Link href="/account" className="hover:text-primary">个人中心</Link>
+              <span> / 我的课程 / {data.course.title}</span>
+            </p>
+            <h1 className="mt-2 text-2xl font-semibold">{active?.title ?? data.course.title}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              总进度 {data.enrollment.progress ?? 0}% · 已完成 {data.summary.completed_lessons}/{data.summary.total_lessons} 课时
+            </p>
+            <CourseInteractions courseId={courseId} title={data.course.title} />
+          </div>
+          <CourseTeacherCard
+            teachers={
+              data.course.teachers?.length
+                ? data.course.teachers
+                : data.course.teacher
+                  ? [data.course.teacher]
+                  : []
+            }
+          />
         </div>
-      </div>
-
-      <aside>
-        <Card className="p-4">
-          <h2 className="font-semibold">课时目录</h2>
+        <div className="mt-4 grid items-stretch gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+          <div className="min-w-0">
+            {!active ? (
+              <div className="flex aspect-video items-center justify-center rounded-xl bg-muted text-sm text-muted-foreground">暂无课时</div>
+            ) : active.type === "live" && liveSessionId ? (
+              <LiveLessonView
+                key={`${active.id}-${liveSessionId}`}
+                sessionId={liveSessionId}
+                initialSeconds={active.progress?.progress_seconds ?? 0}
+                onReport={reportLiveProgress}
+              />
+            ) : active.type === "live" && !liveSessionId ? (
+              <div className="flex aspect-video items-center justify-center rounded-xl bg-muted p-6 text-center text-sm text-muted-foreground">
+                直播课时缺少场次信息，请稍后重试或联系教务。
+              </div>
+            ) : active.type === "video" && isVodMediaId(active.media_id) ? (
+              <VodPlayer
+                key={active.id}
+                courseId={courseId}
+                lessonId={active.id}
+                startAt={resumeAt}
+                onProgress={(seconds) => reportVideoProgress(seconds)}
+                onEnded={(seconds) => reportVideoProgress(seconds || active.duration_seconds || 0, true)}
+              />
+            ) : active.media_url ? (
+              <StreamPlayer
+                key={active.id}
+                src={active.media_url}
+                startAt={resumeAt}
+                onProgress={(seconds) => reportVideoProgress(seconds)}
+                onEnded={(seconds) => reportVideoProgress(seconds || active.duration_seconds || 0, true)}
+              />
+            ) : (
+              <div className="flex aspect-video items-center justify-center rounded-xl bg-muted text-sm text-muted-foreground">
+                该课时暂无播放地址（当前支持录播视频与直播）。
+              </div>
+            )}
+          </div>
+          <CourseChat courseId={courseId} />
+        </div>
+        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+          <div>
+            <CoursewarePanel courseId={courseId} lessonId={active?.id} />
+            <CourseComments courseId={courseId} />
+          </div>
+          <aside>
+            <Card className="p-4">
+              <h2 className="font-semibold">课时目录</h2>
           <div className="mt-4 grid gap-4">
             {chapters.map((chapter) => (
               <div key={chapter.id}>
@@ -221,9 +246,11 @@ export function CourseLearnView({ courseId }: { courseId: number }) {
               </div>
             ) : null}
           </div>
-        </Card>
-        <Link href="/account" className="mt-4 inline-block"><Button variant="secondary">返回个人中心</Button></Link>
-      </aside>
+            </Card>
+            <Link href="/account" className="mt-4 inline-block"><Button variant="secondary">返回个人中心</Button></Link>
+          </aside>
+        </div>
+      </div>
     </div>
   );
 }

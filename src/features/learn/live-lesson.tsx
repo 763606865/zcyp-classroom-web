@@ -122,7 +122,7 @@ export function LiveLessonView({
   if (status === "living" && hls) {
     return (
       <div>
-        <StreamPlayer src={hls} />
+        <StreamPlayer src={hls} autoPlay />
         <p className="mt-2 text-sm text-muted-foreground">
           直播中{session.online_count != null ? ` · ${session.online_count} 人在看` : ""}
         </p>

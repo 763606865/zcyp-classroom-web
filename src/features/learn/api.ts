@@ -4,11 +4,63 @@ import {
   liveSessionSchema,
   updateLessonProgressSchema,
   vodPlayAuthSchema,
+  courseCommentListSchema,
+  courseInteractionSchema,
+  coursewaresSchema,
+  submitCourseCommentSchema,
+  type CourseCommentList,
+  type CourseInteraction,
   type CourseLearn,
+  type Courseware,
   type LiveSessionPayload,
   type VodPlayAuth,
 } from "@/entities/learn";
 import { apiClient, getWebClientInfo } from "@/lib/http";
+
+export function getCourseInteractions(courseId: number) {
+  return apiClient.get<CourseInteraction>(`/api/classroom/courses/${courseId}/interactions`, {
+    responseSchema: courseInteractionSchema,
+    retry: 0,
+  });
+}
+
+export function favoriteCourse(courseId: number) {
+  return apiClient.post<CourseInteraction>(`/api/me/courses/${courseId}/favorite`, {}, {
+    responseSchema: courseInteractionSchema,
+    retry: 0,
+  });
+}
+
+export function unfavoriteCourse(courseId: number) {
+  return apiClient.delete<CourseInteraction>(`/api/me/courses/${courseId}/favorite`, {
+    responseSchema: courseInteractionSchema,
+    retry: 0,
+  });
+}
+
+export function likeCourse(courseId: number) {
+  return apiClient.post<CourseInteraction>(`/api/me/courses/${courseId}/like`, {}, {
+    responseSchema: courseInteractionSchema,
+    retry: 0,
+  });
+}
+
+export function unlikeCourse(courseId: number) {
+  return apiClient.delete<CourseInteraction>(`/api/me/courses/${courseId}/like`, {
+    responseSchema: courseInteractionSchema,
+    retry: 0,
+  });
+}
+
+export function shareCourse(courseId: number, channel: "link" | "wechat" | "moments" | "qq" | "weibo" | "other" = "link") {
+  return apiClient.post<CourseInteraction>(`/api/classroom/courses/${courseId}/share`, {
+    channel,
+    client: "web",
+  }, {
+    responseSchema: courseInteractionSchema,
+    retry: 0,
+  });
+}
 
 export function getCourseLearn(courseId: number) {
   return apiClient.get<CourseLearn>(`/api/me/courses/${courseId}/progress`, {
@@ -21,6 +73,32 @@ export type LessonProgressBody = {
   progress_seconds?: number;
   completed?: boolean;
 };
+
+export function getCourseComments(courseId: number, page = 1) {
+  return apiClient.get<CourseCommentList>(`/api/classroom/courses/${courseId}/comments`, {
+    query: { per_page: 15, page },
+    responseSchema: courseCommentListSchema,
+    retry: 0,
+  });
+}
+
+export function submitCourseComment(
+  courseId: number,
+  body: { rating: number; content: string; is_anonymous?: boolean },
+) {
+  return apiClient.post<z.infer<typeof submitCourseCommentSchema>>(
+    `/api/me/courses/${courseId}/comment`,
+    body,
+    { responseSchema: submitCourseCommentSchema, retry: 0 },
+  );
+}
+
+export function getCoursewares(courseId: number) {
+  return apiClient.get<Courseware[]>(`/api/me/courses/${courseId}/coursewares`, {
+    responseSchema: coursewaresSchema,
+    retry: 0,
+  });
+}
 
 export function getLessonPlayAuth(courseId: number, lessonId: number) {
   return apiClient.get<VodPlayAuth>(`/api/me/courses/${courseId}/lessons/${lessonId}/play-auth`, {

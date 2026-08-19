@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { teacherSchema } from "@/entities/classroom";
 
 const nullableString = z.string().nullable().optional();
 const nullableNumber = z.number().nullable().optional();
@@ -51,6 +52,8 @@ export const courseLearnSchema = z.object({
     type: z.string().optional(),
     duration_minutes: nullableNumber,
     lesson_count: nullableNumber,
+    teacher: teacherSchema.nullable().optional(),
+    teachers: z.array(teacherSchema).optional(),
   }).passthrough(),
   enrollment: z.object({
     status: z.string(),
@@ -113,9 +116,82 @@ export const vodPlayAuthSchema = z.object({
   expires_in: z.number().optional(),
 }).passthrough();
 
+export const coursewareSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  description: nullableString,
+  lesson: z.object({
+    id: z.number(),
+    title: z.string().optional(),
+  }).passthrough().nullable().optional(),
+  original_name: nullableString,
+  file_type: nullableString,
+  file_size: nullableNumber,
+  acquisition_type: z.string().optional(),
+  price: z.union([z.string(), z.number()]).nullable().optional(),
+  currency: nullableString,
+  can_acquire: z.boolean().optional(),
+  requires_purchase: z.boolean().optional(),
+  download_url: nullableString,
+}).passthrough();
+
+export const coursewaresSchema = z.array(coursewareSchema);
+
+export const courseCommentUserSchema = z.object({
+  id: z.number().optional(),
+  name: z.string().optional(),
+  nick_name: z.string().optional(),
+  real_name: z.string().optional(),
+  avatar: nullableString,
+}).passthrough();
+
+export const courseCommentSchema = z.object({
+  id: z.number(),
+  rating: z.coerce.number(),
+  content: z.string(),
+  is_anonymous: z.boolean().optional(),
+  created_at: nullableString,
+  updated_at: nullableString,
+  user: courseCommentUserSchema.nullable().optional(),
+}).passthrough();
+
+export const courseCommentListSchema = z.object({
+  summary: z.object({
+    total: z.number().optional(),
+    count: z.number().optional(),
+    average_rating: z.union([z.number(), z.string()]).nullable().optional(),
+    avg_rating: z.union([z.number(), z.string()]).nullable().optional(),
+  }).passthrough().optional(),
+  comments: z.object({
+    current_page: z.number(),
+    data: z.array(courseCommentSchema),
+    per_page: z.number(),
+    total: z.number(),
+    last_page: z.number().optional(),
+  }).passthrough(),
+}).passthrough();
+
+export const submitCourseCommentSchema = z.object({
+  message: z.string().optional(),
+  comment: courseCommentSchema.optional(),
+}).passthrough();
+
+export const courseInteractionSchema = z.object({
+  favorite_count: z.number().optional(),
+  like_count: z.number().optional(),
+  share_count: z.number().optional(),
+  favorited: z.boolean().optional(),
+  liked: z.boolean().optional(),
+  share_url: z.string().optional(),
+}).passthrough();
+
 export type LearnLesson = z.infer<typeof learnLessonSchema>;
 export type CourseLearn = z.infer<typeof courseLearnSchema>;
 export type LiveSessionPayload = z.infer<typeof liveSessionSchema>;
 export type LessonProgress = z.infer<typeof lessonProgressSchema>;
 export type LessonLiveSession = z.infer<typeof lessonLiveSessionSchema>;
 export type VodPlayAuth = z.infer<typeof vodPlayAuthSchema>;
+export type Courseware = z.infer<typeof coursewareSchema>;
+export type CourseComment = z.infer<typeof courseCommentSchema>;
+export type CourseCommentList = z.infer<typeof courseCommentListSchema>;
+export type CourseInteraction = z.infer<typeof courseInteractionSchema>;

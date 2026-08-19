@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { imClient } from "@/lib/im-client";
 import { configureHttpAuth, isApiError } from "@/lib/http";
 import { getCurrentUser, loginWithSms } from "./api";
 import { browserTokenStorage } from "./token-storage";
@@ -21,6 +22,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
 
   const logout = useCallback(() => {
+    imClient.stop();
     browserTokenStorage.remove();
     setUser(null);
     setStatus("anonymous");
@@ -38,6 +40,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const result = await getCurrentUser(token);
       setUser(result.data.user);
       setStatus("authenticated");
+      if (result.data.im) imClient.start(result.data.im);
+      else void imClient.retry(undefined, token).catch(() => undefined);
       return result.data.user;
     } catch (error) {
       if (isApiError(error) && error.status === 401) logout();
@@ -56,6 +60,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     browserTokenStorage.set(result.data.access_token);
     setUser(result.data.user);
     setStatus("authenticated");
+    if (result.data.im?.enabled) imClient.start(result.data.im);
+    else if (result.data.im?.retryable) void imClient.retry(undefined, result.data.access_token).catch(() => undefined);
     return result.data.user;
   }, []);
 
