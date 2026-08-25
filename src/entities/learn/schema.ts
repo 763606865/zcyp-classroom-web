@@ -185,6 +185,41 @@ export const courseInteractionSchema = z.object({
   share_url: z.string().optional(),
 }).passthrough();
 
+export const myPracticeRecordSchema = z.object({
+  id: z.number(),
+  attempt_no: z.number(),
+  status: z.string(),
+  score: nullableNumber,
+  correct_count: z.number(),
+  answered_count: z.number(),
+  started_at: nullableString,
+  completed_at: nullableString,
+  practice: z.object({
+    id: z.number(),
+    title: z.string(),
+    description: nullableString,
+    status: z.string(),
+    question_count: z.number(),
+    total_score: z.number(),
+    show_answer_immediately: z.boolean(),
+    course: z.object({
+      id: z.number(),
+      title: z.string(),
+      slug: z.string(),
+    }).nullable().optional(),
+    lesson: z.object({
+      id: z.number(),
+      title: z.string(),
+    }).nullable().optional(),
+    chapter: z.object({
+      id: z.number(),
+      title: z.string(),
+    }).nullable().optional(),
+  }).nullable().optional(),
+});
+
+export type MyPracticeRecord = z.infer<typeof myPracticeRecordSchema>;
+
 export type LearnLesson = z.infer<typeof learnLessonSchema>;
 export type CourseLearn = z.infer<typeof courseLearnSchema>;
 export type LiveSessionPayload = z.infer<typeof liveSessionSchema>;

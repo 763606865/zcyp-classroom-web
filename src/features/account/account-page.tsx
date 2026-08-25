@@ -12,8 +12,9 @@ import { formatDateTime, statusLabel } from "@/features/classroom/labels";
 import { getApiErrorMessage } from "@/lib/forms";
 import { ProfileForm } from "@/features/user/profile-form";
 import { getMyClasses, getMyCourseFavorites, getMyCourses, getMyExams, getMyTrainings } from "./api";
+import { MyPracticesPanel } from "./my-practices";
 
-type Tab = "profile" | "trainings" | "courses" | "favorites" | "classes" | "exams";
+type Tab = "profile" | "trainings" | "courses" | "favorites" | "classes" | "exams" | "practices";
 
 const tabs: { id: Tab; label: string }[] = [
   { id: "profile", label: "资料" },
@@ -22,6 +23,7 @@ const tabs: { id: Tab; label: string }[] = [
   { id: "favorites", label: "我的收藏" },
   { id: "classes", label: "我的班级" },
   { id: "exams", label: "我的考试" },
+  { id: "practices", label: "我的练习" },
 ];
 
 export function AccountPageView() {
@@ -65,6 +67,7 @@ export function AccountPageView() {
         {tab === "favorites" ? <MyFavoritesPanel /> : null}
         {tab === "classes" ? <MyClassesPanel /> : null}
         {tab === "exams" ? <MyExamsPanel /> : null}
+        {tab === "practices" ? <MyPracticesPanel /> : null}
       </section>
     </div>
   );
