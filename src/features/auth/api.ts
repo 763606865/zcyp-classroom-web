@@ -19,6 +19,14 @@ export function loginWithSms(phone: string, code: string) {
   return apiClient.post<{ token_type: "Bearer"; access_token: string; user: User; im?: ImConfig }>("/api/auth/login", { phone, code, device_name: "web" }, { responseSchema: loginResponseSchema });
 }
 
+export function exchangeEcosystemTicket(ticket: string) {
+  return apiClient.post<{ token_type: "Bearer"; access_token: string; user: User; im?: ImConfig }>(
+    "/api/auth/ecosystem/ticket/exchange",
+    { ticket, device_name: "web" },
+    { responseSchema: loginResponseSchema, token: "", retry: 0 },
+  );
+}
+
 export function getCurrentUser(token?: string) {
   return apiClient.get<{ user: User; im?: ImConfig }>("/api/me", { token, responseSchema: meResponseSchema, retry: 0 });
 }

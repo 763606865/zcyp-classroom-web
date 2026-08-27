@@ -3,7 +3,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { imClient } from "@/lib/im-client";
 import { configureHttpAuth, isApiError } from "@/lib/http";
-import { getCurrentUser, loginWithSms } from "./api";
+import { exchangeEcosystemTicket, getCurrentUser, loginWithSms } from "./api";
+import type { ImConfig } from "@/entities/im";
 import { browserTokenStorage } from "./token-storage";
 import type { AuthStatus, User } from "./types";
 
@@ -11,6 +12,7 @@ interface AuthContextValue {
   status: AuthStatus;
   user: User | null;
   login(phone: string, code: string): Promise<User>;
+  loginWithEcosystemTicket(ticket: string): Promise<User>;
   logout(): void;
   refreshUser(): Promise<User | null>;
 }
@@ -55,17 +57,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.clearTimeout(timer);
   }, [refreshUser]);
 
-  const login = useCallback(async (phone: string, code: string) => {
-    const result = await loginWithSms(phone, code);
-    browserTokenStorage.set(result.data.access_token);
-    setUser(result.data.user);
+  const applySession = useCallback((accessToken: string, nextUser: User, im?: ImConfig) => {
+    browserTokenStorage.set(accessToken);
+    setUser(nextUser);
     setStatus("authenticated");
-    if (result.data.im?.enabled) imClient.start(result.data.im);
-    else if (result.data.im?.retryable) void imClient.retry(undefined, result.data.access_token).catch(() => undefined);
-    return result.data.user;
+    if (im?.enabled) imClient.start(im);
+    else if (im?.retryable) void imClient.retry(undefined, accessToken).catch(() => undefined);
+    return nextUser;
   }, []);
 
-  const value = useMemo(() => ({ status, user, login, logout, refreshUser }), [status, user, login, logout, refreshUser]);
+  const login = useCallback(async (phone: string, code: string) => {
+    const result = await loginWithSms(phone, code);
+    return applySession(result.data.access_token, result.data.user, result.data.im);
+  }, [applySession]);
+
+  const loginWithEcosystemTicket = useCallback(async (ticket: string) => {
+    const result = await exchangeEcosystemTicket(ticket);
+    return applySession(result.data.access_token, result.data.user, result.data.im);
+  }, [applySession]);
+
+  const value = useMemo(
+    () => ({ status, user, login, loginWithEcosystemTicket, logout, refreshUser }),
+    [status, user, login, loginWithEcosystemTicket, logout, refreshUser],
+  );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
