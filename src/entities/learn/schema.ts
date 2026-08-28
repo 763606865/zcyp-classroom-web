@@ -30,6 +30,7 @@ export const learnLessonSchema = z.object({
   type: z.string(),
   media_url: nullableString,
   media_id: z.union([z.string(), z.number()]).nullable().optional(),
+  media_provider: z.string().nullable().optional(),
   live_session_id: nullableNumber,
   live_sessions: z.array(lessonLiveSessionSchema).optional(),
   duration_seconds: nullableNumber,
@@ -111,8 +112,10 @@ export const liveSessionSchema = z.object({
 }).passthrough();
 
 export const vodPlayAuthSchema = z.object({
-  media_id: z.string(),
+  provider: z.enum(["aliyun", "tencent"]).optional(),
+  media_id: z.union([z.string(), z.number()]),
   play_auth: z.string(),
+  app_id: z.union([z.string(), z.number()]).nullable().optional(),
   expires_in: z.number().optional(),
 }).passthrough();
 

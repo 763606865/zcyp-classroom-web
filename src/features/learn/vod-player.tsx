@@ -2,9 +2,117 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { Spinner } from "@/components/ui/spinner";
+import type { VodPlayAuth } from "@/entities/learn";
 import { getApiErrorMessage } from "@/lib/forms";
 import { loadAliplayer, type AliplayerInstance } from "./aliplayer";
 import { getLessonPlayAuth } from "./api";
+import { loadTcPlayer, type TcPlayerInstance } from "./tcplayer";
+
+type PlayerHandle = {
+  dispose: () => void;
+  getCurrentTime: () => number;
+};
+
+function mediaIdOf(auth: VodPlayAuth) {
+  return String(auth.media_id);
+}
+
+function providerOf(auth: VodPlayAuth): "aliyun" | "tencent" {
+  return auth.provider === "tencent" ? "tencent" : "aliyun";
+}
+
+function mountContainer(host: HTMLElement, id: string, tag: "div" | "video") {
+  host.replaceChildren();
+  const el = document.createElement(tag);
+  el.id = id;
+  el.className = "h-full w-full";
+  if (tag === "video") {
+    el.setAttribute("playsinline", "true");
+    el.setAttribute("webkit-playsinline", "true");
+    el.setAttribute("preload", "auto");
+  }
+  host.appendChild(el);
+  return el;
+}
+
+function attachProgress(
+  on: (event: string, handler: (...args: unknown[]) => void) => void,
+  getCurrentTime: () => number,
+  lastReported: { current: number },
+  onProgress: { current?: (seconds: number) => void },
+  onEnded: { current?: (seconds: number) => void },
+) {
+  on("timeupdate", () => {
+    const seconds = Math.floor(getCurrentTime() || 0);
+    if (seconds - lastReported.current < 15) return;
+    lastReported.current = seconds;
+    onProgress.current?.(seconds);
+  });
+  on("pause", () => {
+    onProgress.current?.(Math.floor(getCurrentTime() || 0));
+  });
+  on("ended", () => {
+    onEnded.current?.(Math.floor(getCurrentTime() || 0));
+  });
+  on("error", () => {
+    onProgress.current?.(Math.floor(getCurrentTime() || 0));
+  });
+}
+
+async function createAliPlayer(
+  playerId: string,
+  auth: VodPlayAuth,
+  startAt: number,
+): Promise<{ player: AliplayerInstance; handle: PlayerHandle }> {
+  const Aliplayer = await loadAliplayer();
+  const player = new Aliplayer({
+    id: playerId,
+    vid: mediaIdOf(auth),
+    playauth: auth.play_auth,
+    autoplay: false,
+    width: "100%",
+    height: "100%",
+    useH5Prism: true,
+  }, () => {
+    if (startAt > 1) player.seek(startAt);
+  });
+  return {
+    player,
+    handle: {
+      dispose: () => player.dispose(),
+      getCurrentTime: () => player.getCurrentTime() || 0,
+    },
+  };
+}
+
+async function createTencentPlayer(
+  playerId: string,
+  auth: VodPlayAuth,
+  startAt: number,
+): Promise<{ player: TcPlayerInstance; handle: PlayerHandle }> {
+  const appId = auth.app_id == null || auth.app_id === "" ? "" : String(auth.app_id);
+  if (!appId) throw new Error("腾讯云点播缺少 app_id，无法播放");
+  const TCPlayer = await loadTcPlayer();
+  const player = TCPlayer(playerId, {
+    fileID: mediaIdOf(auth),
+    appID: appId,
+    psign: auth.play_auth,
+    autoplay: false,
+    width: "100%",
+    height: "100%",
+    language: "zh-CN",
+  });
+  player.ready(() => {
+    if (startAt > 1) player.currentTime(startAt);
+  });
+  return {
+    player,
+    handle: {
+      dispose: () => player.dispose(),
+      getCurrentTime: () => Number(player.currentTime()) || 0,
+    },
+  };
+}
 
 export function VodPlayer({
   courseId,
@@ -21,7 +129,8 @@ export function VodPlayer({
 }) {
   const reactId = useId().replace(/:/g, "");
   const playerId = `vod-player-${lessonId}-${reactId}`;
-  const playerRef = useRef<AliplayerInstance | null>(null);
+  const hostRef = useRef<HTMLDivElement>(null);
+  const playerRef = useRef<PlayerHandle | null>(null);
   const startAtRef = useRef(startAt);
   const lastReported = useRef(0);
   const onProgressRef = useRef(onProgress);
@@ -37,61 +146,73 @@ export function VodPlayer({
     let refreshTimer: number | undefined;
     lastReported.current = Math.max(0, Math.floor(startAtRef.current));
 
+    let aliPlayer: AliplayerInstance | undefined;
+    let tencentPlayer: TcPlayerInstance | undefined;
+
     async function createPlayer() {
       setLoading(true);
       setError(undefined);
-      const [Aliplayer, auth] = await Promise.all([
-        loadAliplayer(),
-        getLessonPlayAuth(courseId, lessonId),
-      ]);
+      const host = hostRef.current;
+      if (!host) throw new Error("播放器容器未就绪");
+
+      const authResult = await getLessonPlayAuth(courseId, lessonId);
       if (cancelled) return;
+      const auth = authResult.data;
+      const provider = providerOf(auth);
 
       playerRef.current?.dispose();
-      const player = new Aliplayer({
-        id: playerId,
-        vid: auth.data.media_id,
-        playauth: auth.data.play_auth,
-        autoplay: false,
-        width: "100%",
-        height: "100%",
-        useH5Prism: true,
-      }, () => {
-        const resume = startAtRef.current;
-        if (resume > 1) player.seek(resume);
-      });
-      playerRef.current = player;
+      playerRef.current = null;
+      mountContainer(host, playerId, provider === "tencent" ? "video" : "div");
 
-      player.on("timeupdate", () => {
-        const seconds = Math.floor(player.getCurrentTime() || 0);
-        if (seconds - lastReported.current < 15) return;
-        lastReported.current = seconds;
-        onProgressRef.current?.(seconds);
-      });
-      player.on("pause", () => {
-        onProgressRef.current?.(Math.floor(player.getCurrentTime() || 0));
-      });
-      player.on("ended", () => {
-        onEndedRef.current?.(Math.floor(player.getCurrentTime() || 0));
-      });
-      player.on("error", () => {
-        onProgressRef.current?.(Math.floor(player.getCurrentTime() || 0));
-      });
+      if (provider === "tencent") {
+        const created = await createTencentPlayer(playerId, auth, startAtRef.current);
+        if (cancelled) {
+          created.handle.dispose();
+          return;
+        }
+        tencentPlayer = created.player;
+        playerRef.current = created.handle;
+        attachProgress(created.player.on.bind(created.player), created.handle.getCurrentTime, lastReported, onProgressRef, onEndedRef);
+      } else {
+        const created = await createAliPlayer(playerId, auth, startAtRef.current);
+        if (cancelled) {
+          created.handle.dispose();
+          return;
+        }
+        aliPlayer = created.player;
+        playerRef.current = created.handle;
+        attachProgress(created.player.on.bind(created.player), created.handle.getCurrentTime, lastReported, onProgressRef, onEndedRef);
+      }
 
-      const expiresIn = auth.data.expires_in ?? 3000;
+      const expiresIn = auth.expires_in ?? 3000;
       refreshTimer = window.setTimeout(() => {
-        void refreshAuth(player);
+        void refreshAuth(provider);
       }, Math.max((expiresIn - 90) * 1000, 30_000));
       setLoading(false);
     }
 
-    async function refreshAuth(player: AliplayerInstance) {
+    async function refreshAuth(provider: "aliyun" | "tencent") {
       try {
-        const auth = await getLessonPlayAuth(courseId, lessonId);
+        const next = await getLessonPlayAuth(courseId, lessonId);
         if (cancelled) return;
-        player.replayByVidAndPlayauth?.(auth.data.media_id, auth.data.play_auth);
-        const expiresIn = auth.data.expires_in ?? 3000;
+        const auth = next.data;
+        const current = Math.floor(playerRef.current?.getCurrentTime() || 0);
+        if (provider === "tencent") {
+          const appId = auth.app_id == null || auth.app_id === "" ? "" : String(auth.app_id);
+          tencentPlayer?.loadVideoByID?.({
+            fileID: mediaIdOf(auth),
+            appID: appId,
+            psign: auth.play_auth,
+          });
+          tencentPlayer?.ready?.(() => {
+            if (current > 1) tencentPlayer?.currentTime(current);
+          });
+        } else {
+          aliPlayer?.replayByVidAndPlayauth?.(mediaIdOf(auth), auth.play_auth);
+        }
+        const expiresIn = auth.expires_in ?? 3000;
         refreshTimer = window.setTimeout(() => {
-          void refreshAuth(player);
+          void refreshAuth(provider);
         }, Math.max((expiresIn - 90) * 1000, 30_000));
       } catch {
         // 凭证刷新失败时保留当前播放，过期后再由用户切换课时重试。
@@ -128,7 +249,7 @@ export function VodPlayer({
 
   return (
     <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-black">
-      <div id={playerId} className="absolute inset-0 h-full w-full" />
+      <div ref={hostRef} className="absolute inset-0 h-full w-full" />
       {loading ? (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40">
           <Spinner label="加载视频" />

@@ -107,8 +107,10 @@ export function getLessonPlayAuth(courseId: number, lessonId: number) {
   });
 }
 
-export function isVodMediaId(mediaId?: string | number | null) {
-  return typeof mediaId === "string" && mediaId.length > 8 && !/^\d+$/.test(mediaId);
+export function hasVodMedia(mediaId?: string | number | null) {
+  if (mediaId == null || mediaId === "") return false;
+  if (typeof mediaId === "number") return Number.isFinite(mediaId) && mediaId > 0;
+  return mediaId.length > 0;
 }
 
 export function updateLessonProgress(

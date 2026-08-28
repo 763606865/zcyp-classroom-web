@@ -12,7 +12,7 @@ import { useAuth } from "@/features/auth/auth-provider";
 import { statusLabel } from "@/features/classroom/labels";
 import { getApiErrorMessage } from "@/lib/forms";
 import { applyLessonProgress, flattenLessons } from "./apply-progress";
-import { getCourseLearn, isVodMediaId, resolveLiveSessionId, updateLessonProgress, type LessonProgressBody } from "./api";
+import { getCourseLearn, hasVodMedia, resolveLiveSessionId, updateLessonProgress, type LessonProgressBody } from "./api";
 import { CourseChat } from "./course-chat";
 import { CourseComments } from "./course-comments";
 import { CourseInteractions } from "./course-interactions";
@@ -168,7 +168,7 @@ export function CourseLearnView({ courseId }: { courseId: number }) {
               <div className="flex aspect-video items-center justify-center rounded-xl bg-muted p-6 text-center text-sm text-muted-foreground">
                 直播课时缺少场次信息，请稍后重试或联系教务。
               </div>
-            ) : active.type === "video" && isVodMediaId(active.media_id) ? (
+            ) : active.type === "video" && hasVodMedia(active.media_id) ? (
               <VodPlayer
                 key={active.id}
                 courseId={courseId}
