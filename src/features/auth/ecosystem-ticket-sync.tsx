@@ -26,22 +26,18 @@ export function EcosystemTicketSync() {
     setOpen(true);
   }, [handledTicket, status, ticket]);
 
-  function clearTicketFromUrl() {
+  function urlWithoutTicket() {
     const params = new URLSearchParams(searchParams.toString());
     params.delete(TICKET_QUERY);
     const query = params.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-  }
-
-  function closeModal(removeTicket: boolean) {
-    if (ticket) setHandledTicket(ticket);
-    setOpen(false);
-    if (removeTicket) clearTicketFromUrl();
+    return query ? `${pathname}?${query}` : pathname;
   }
 
   function decline() {
     if (submitting) return;
-    closeModal(true);
+    if (ticket) setHandledTicket(ticket);
+    setOpen(false);
+    router.replace(urlWithoutTicket(), { scroll: false });
   }
 
   async function confirm() {
@@ -49,12 +45,12 @@ export function EcosystemTicketSync() {
     setSubmitting(true);
     try {
       await loginWithEcosystemTicket(ticket);
-      toast({ title: "账号已同步", description: "已使用中台身份登录本站。" });
-      closeModal(true);
+      setHandledTicket(ticket);
+      setOpen(false);
+      window.location.assign(urlWithoutTicket());
     } catch (error) {
-      toast({ title: "同步失败", description: getApiErrorMessage(error, "票据无效或已过期，请从中台重新进入") });
-    } finally {
       setSubmitting(false);
+      toast({ title: "同步失败", description: getApiErrorMessage(error, "票据无效或已过期，请从中台重新进入") });
     }
   }
 
