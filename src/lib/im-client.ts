@@ -34,11 +34,24 @@ export function normalizeChatMessage(raw: ImChatMessage | Record<string, unknown
   const user = record.user ?? record.sender;
   return {
     id: pickString(record.id, `${Date.now()}-${content.slice(0, 8)}`),
-    conversationId: pickString(record.conversation_id, conversationId),
+    conversationId: pickString(record.conversation_no, record.conversation_id, conversationId),
     content,
     userId: pickString(record.user_id, record.sender_id, user?.id) || undefined,
     userName: pickString(user?.nick_name, user?.real_name, user?.name, "学员") || "学员",
     createdAt: record.created_at ?? undefined,
+  };
+}
+
+function flattenImConfig(config: ImConfig): ImConfig {
+  const protocol = config.protocol;
+  if (!protocol) return config;
+  return {
+    ...config,
+    auth_event: config.auth_event ?? protocol.auth_event,
+    join_event: config.join_event ?? protocol.join_event,
+    heartbeat_event: config.heartbeat_event ?? protocol.heartbeat_event,
+    heartbeat_interval: config.heartbeat_interval ?? protocol.heartbeat_interval,
+    send_event: config.send_event ?? protocol.send_event,
   };
 }
 
@@ -64,7 +77,7 @@ class ImClient {
 
   start(config?: ImConfig | null) {
     if (config?.enabled === false) return;
-    if (config) this.config = { ...this.config, ...config };
+    if (config) this.config = flattenImConfig({ ...this.config, ...config });
     if (!this.config) return;
     this.stopped = false;
     if (!resolveWsUrl(this.config) || !resolveToken(this.config)) {
@@ -95,8 +108,15 @@ class ImClient {
       retry: 0,
     });
     const room = result.data;
-    const conversationId = pickString(room.conversation_id, room.conversation?.id, room.conversation?.conversation_id);
-    if (!conversationId) throw new Error("聊天室未返回会话 ID");
+    if (room.enabled === false) throw new Error("即时通讯未启用");
+    const conversationId = pickString(
+      room.conversation?.conversation_no,
+      room.conversation_no,
+      room.conversation_id,
+      room.conversation?.conversation_id,
+      room.conversation?.id,
+    );
+    if (!conversationId) throw new Error("聊天室未返回会话号");
     this.conversations.add(conversationId);
     const history = (room.messages ?? []).map((item) => normalizeChatMessage(item, conversationId)).filter((item): item is ChatMessage => Boolean(item));
     if (history.length) {
@@ -105,12 +125,17 @@ class ImClient {
     }
     this.start({ ...this.config, ...room, enabled: true });
     this.join(conversationId);
-    return { conversationId, title: pickString(room.title, room.conversation?.title, "课程群聊") };
+    return {
+      conversationId,
+      title: pickString(room.conversation?.title, room.title, "班级群聊"),
+      classId: room.conversation?.class_id,
+    };
   }
 
   sendText(conversationId: string, content: string) {
     const event = this.config?.send_event || "message.send";
     this.send(event, {
+      conversation_no: conversationId,
       conversation_id: conversationId,
       type: "text",
       content,
@@ -205,7 +230,7 @@ class ImClient {
 
   private join(conversationId: string) {
     if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return;
-    this.send(this.config?.join_event || "conversation.join", { conversation_id: conversationId });
+    this.send(this.config?.join_event || "conversation.join", { conversation_no: conversationId });
   }
 
   private startHeartbeat() {
@@ -231,7 +256,7 @@ class ImClient {
       const event = pickString(record.event, record.type, record.name);
       const data = asRecord(record.data) ?? asRecord(record.payload) ?? record;
       if (event.includes("message") && event !== this.config?.send_event) {
-        const conversationId = pickString(data.conversation_id, [...this.conversations][0]);
+        const conversationId = pickString(data.conversation_no, data.conversation_id, [...this.conversations][0]);
         const message = normalizeChatMessage(data as ImChatMessage, conversationId);
         if (message) this.push(message);
       }

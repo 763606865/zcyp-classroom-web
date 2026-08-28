@@ -12,7 +12,7 @@ import { browserTokenStorage } from "@/features/auth/token-storage";
 export function CourseChat({ courseId }: { courseId: number }) {
   const { user } = useAuth();
   const [conversationId, setConversationId] = useState<string>();
-  const [title, setTitle] = useState("课程群聊");
+  const [title, setTitle] = useState("班级群聊");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [text, setText] = useState("");
   const [error, setError] = useState<string>();
@@ -34,7 +34,7 @@ export function CourseChat({ courseId }: { courseId: number }) {
         setMessages(imClient.getMessages(room.conversationId));
       })
       .catch((err: unknown) => {
-        if (!cancelled) setError(getApiErrorMessage(err, "暂无法进入课程群聊"));
+        if (!cancelled) setError(getApiErrorMessage(err, "暂无法进入班级群聊"));
       });
     const unsubscribe = imClient.subscribe((all) => {
       if (cancelled || !roomId) return;

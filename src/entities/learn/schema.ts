@@ -63,6 +63,11 @@ export const courseLearnSchema = z.object({
     last_learned_at: nullableString,
     completed_at: nullableString,
   }).passthrough(),
+  class: z.object({
+    id: z.number().optional(),
+    name: z.string().optional(),
+    im_conversation_id: nullableString,
+  }).passthrough().nullable().optional(),
   summary: z.object({
     total_lessons: z.number(),
     completed_lessons: z.number(),

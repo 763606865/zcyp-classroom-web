@@ -11,5 +11,12 @@ export function applyApiFieldErrors<T extends FieldValues>(error: unknown, setEr
 }
 
 export function getApiErrorMessage(error: unknown, fallback = "操作失败，请稍后重试"): string {
-  return isApiError(error) ? error.message : fallback;
+  if (!isApiError(error)) return fallback;
+  const fieldMessage = error.errors
+    ? Object.values(error.errors).flat().find((item) => Boolean(item))
+    : undefined;
+  if (fieldMessage && (error.message === "The given data was invalid." || !error.message)) {
+    return fieldMessage;
+  }
+  return error.message || fieldMessage || fallback;
 }
