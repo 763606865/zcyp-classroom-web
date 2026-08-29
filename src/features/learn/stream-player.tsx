@@ -24,8 +24,11 @@ export function StreamPlayer({
   const lastReported = useRef(0);
   const onProgressRef = useRef(onProgress);
   const onEndedRef = useRef(onEnded);
-  onProgressRef.current = onProgress;
-  onEndedRef.current = onEnded;
+
+  useEffect(() => {
+    onProgressRef.current = onProgress;
+    onEndedRef.current = onEnded;
+  });
 
   useEffect(() => {
     const video = videoRef.current;

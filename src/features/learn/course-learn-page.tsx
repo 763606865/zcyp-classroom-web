@@ -73,9 +73,12 @@ export function CourseLearnView({ courseId }: { courseId: number }) {
   const chapters = data?.chapters ?? [];
   const liveSessionId = active && active.type === "live" ? resolveLiveSessionId(active) : null;
   const activeRef = useRef(active);
-  activeRef.current = active;
   const sending = useRef(false);
   const queue = useRef<{ lessonId: number; body: LessonProgressBody }[]>([]);
+
+  useEffect(() => {
+    activeRef.current = active;
+  });
 
   async function flushProgress(lessonId: number, body: LessonProgressBody) {
     queue.current.push({ lessonId, body });

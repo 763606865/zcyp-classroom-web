@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -17,14 +17,9 @@ export function EcosystemTicketSync() {
   const ticket = searchParams.get(TICKET_QUERY)?.trim() ?? "";
   const { status, loginWithEcosystemTicket } = useAuth();
   const { toast } = useToast();
-  const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [handledTicket, setHandledTicket] = useState<string>();
-
-  useEffect(() => {
-    if (status === "loading" || !ticket || handledTicket === ticket) return;
-    setOpen(true);
-  }, [handledTicket, status, ticket]);
+  const open = status !== "loading" && Boolean(ticket) && handledTicket !== ticket;
 
   function urlWithoutTicket() {
     const params = new URLSearchParams(searchParams.toString());
@@ -36,7 +31,6 @@ export function EcosystemTicketSync() {
   function decline() {
     if (submitting) return;
     if (ticket) setHandledTicket(ticket);
-    setOpen(false);
     router.replace(urlWithoutTicket(), { scroll: false });
   }
 
@@ -46,7 +40,6 @@ export function EcosystemTicketSync() {
     try {
       await loginWithEcosystemTicket(ticket);
       setHandledTicket(ticket);
-      setOpen(false);
       window.location.assign(urlWithoutTicket());
     } catch (error) {
       setSubmitting(false);

@@ -137,9 +137,12 @@ export function VodPlayer({
   const onEndedRef = useRef(onEnded);
   const [error, setError] = useState<string>();
   const [loading, setLoading] = useState(true);
-  onProgressRef.current = onProgress;
-  onEndedRef.current = onEnded;
-  startAtRef.current = startAt;
+
+  useEffect(() => {
+    onProgressRef.current = onProgress;
+    onEndedRef.current = onEnded;
+    startAtRef.current = startAt;
+  });
 
   useEffect(() => {
     let cancelled = false;

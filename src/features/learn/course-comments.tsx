@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -89,8 +89,26 @@ export function CourseComments({ courseId }: { courseId: number }) {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    void load(1)
+    void getCourseComments(courseId, 1)
+      .then((result) => {
+        if (cancelled) return;
+        const comments = result.data.comments;
+        setItems(comments.data);
+        setPage(comments.current_page);
+        setLastPage(comments.last_page ?? Math.max(1, Math.ceil(comments.total / comments.per_page)));
+        setTotal(result.data.summary?.total ?? result.data.summary?.count ?? comments.total);
+        const avg = result.data.summary?.average_rating ?? result.data.summary?.avg_rating;
+        setAverage(avg == null || avg === "" ? undefined : String(avg));
+        const mine = comments.data.find((item) => item.user?.id === user?.id);
+        if (mine) {
+          form.reset({
+            rating: mine.rating,
+            content: mine.content,
+            is_anonymous: Boolean(mine.is_anonymous),
+          });
+          setEditing(true);
+        }
+      })
       .catch((err: unknown) => {
         if (!cancelled) setError(getApiErrorMessage(err, "评论加载失败"));
       })
@@ -100,8 +118,7 @@ export function CourseComments({ courseId }: { courseId: number }) {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- 仅随课程变化重新加载
-  }, [courseId]);
+  }, [courseId, form, user?.id]);
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
@@ -127,18 +144,30 @@ export function CourseComments({ courseId }: { courseId: number }) {
 
       <form className="mt-4 grid gap-3" onSubmit={onSubmit}>
         <FormField id="rating" label="评分" error={form.formState.errors.rating?.message}>
-          <Stars value={form.watch("rating")} onChange={(value) => form.setValue("rating", value, { shouldValidate: true })} />
+          <Controller
+            name="rating"
+            control={form.control}
+            render={({ field }) => (
+              <Stars value={field.value} onChange={(value) => field.onChange(value)} />
+            )}
+          />
         </FormField>
         <FormField id="content" label={editing ? "修改我的评论" : "写评论"} error={form.formState.errors.content?.message}>
           <Textarea id="content" maxLength={1000} placeholder="至少 5 个字，分享你的学习体验" {...form.register("content")} />
         </FormField>
-        <label className="flex items-center gap-2 text-sm">
-          <Checkbox
-            checked={form.watch("is_anonymous")}
-            onCheckedChange={(checked) => form.setValue("is_anonymous", checked === true)}
-          />
-          匿名展示
-        </label>
+        <Controller
+          name="is_anonymous"
+          control={form.control}
+          render={({ field }) => (
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={field.value}
+                onCheckedChange={(checked) => field.onChange(checked === true)}
+              />
+              匿名展示
+            </label>
+          )}
+        />
         <div>
           <Button type="submit" loading={form.formState.isSubmitting}>{editing ? "更新评论" : "发布评论"}</Button>
         </div>

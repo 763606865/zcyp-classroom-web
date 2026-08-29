@@ -29,7 +29,10 @@ export function LiveLessonView({
   const baseSeconds = useRef(Math.max(0, Math.floor(initialSeconds)));
   const joinedAt = useRef<number | null>(null);
   const onReportRef = useRef(onReport);
-  onReportRef.current = onReport;
+
+  useEffect(() => {
+    onReportRef.current = onReport;
+  });
 
   useEffect(() => {
     let cancelled = false;

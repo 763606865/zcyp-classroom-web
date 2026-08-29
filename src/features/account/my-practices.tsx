@@ -30,7 +30,6 @@ export function MyPracticesPanel() {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
     void getMyPractices({ status: statusFilter || undefined, per_page: PER_PAGE, page })
       .then((result) => {
         if (!cancelled) {
@@ -47,6 +46,8 @@ export function MyPracticesPanel() {
   function handleFilterChange(filter: StatusFilter) {
     setStatusFilter(filter);
     setPage(1);
+    setLoading(true);
+    setError(undefined);
   }
 
   if (error) return <EmptyState title="无法加载练习记录" description={error} />;
@@ -100,7 +101,10 @@ export function MyPracticesPanel() {
               <button
                 type="button"
                 disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                onClick={() => {
+                  setLoading(true);
+                  setPage((p) => Math.max(1, p - 1));
+                }}
                 className="rounded-md px-3 py-1 text-sm disabled:opacity-40"
               >
                 上一页
@@ -111,7 +115,10 @@ export function MyPracticesPanel() {
               <button
                 type="button"
                 disabled={page >= lastPage}
-                onClick={() => setPage((p) => Math.min(lastPage, p + 1))}
+                onClick={() => {
+                  setLoading(true);
+                  setPage((p) => Math.min(lastPage, p + 1));
+                }}
                 className="rounded-md px-3 py-1 text-sm disabled:opacity-40"
               >
                 下一页
