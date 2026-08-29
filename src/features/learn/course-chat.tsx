@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/features/auth/auth-provider";
+import { ChatEmojiPicker } from "./chat-emoji-picker";
 import { getApiErrorMessage } from "@/lib/forms";
 import { imClient, type ChatMessage } from "@/lib/im-client";
 import { browserTokenStorage } from "@/features/auth/token-storage";
@@ -18,6 +19,7 @@ export function CourseChat({ courseId }: { courseId: number }) {
   const [error, setError] = useState<string>();
   const [ready, setReady] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -50,6 +52,19 @@ export function CourseChat({ courseId }: { courseId: number }) {
     bottomRef.current?.scrollIntoView({ block: "end" });
   }, [messages.length]);
 
+  function insertEmoji(emoji: string) {
+    const input = inputRef.current;
+    const start = input?.selectionStart ?? text.length;
+    const end = input?.selectionEnd ?? text.length;
+    const next = `${text.slice(0, start)}${emoji}${text.slice(end)}`.slice(0, 500);
+    setText(next);
+    requestAnimationFrame(() => {
+      input?.focus();
+      const cursor = Math.min(start + emoji.length, next.length);
+      input?.setSelectionRange(cursor, cursor);
+    });
+  }
+
   async function submit(event: FormEvent) {
     event.preventDefault();
     const content = text.trim();
@@ -78,7 +93,7 @@ export function CourseChat({ courseId }: { courseId: number }) {
           return (
             <div key={item.id} className={mine ? "text-right" : ""}>
               <p className="text-xs text-muted-foreground">{mine ? "我" : item.userName}</p>
-              <p className={`mt-0.5 inline-block max-w-[90%] rounded-md px-3 py-1.5 ${mine ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+              <p className={`mt-0.5 inline-block max-w-[90%] whitespace-pre-wrap break-words rounded-md px-3 py-1.5 ${mine ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
                 {item.content}
               </p>
             </div>
@@ -88,12 +103,14 @@ export function CourseChat({ courseId }: { courseId: number }) {
       </div>
       <form className="mt-3 flex gap-2" onSubmit={submit}>
         <Input
+          ref={inputRef}
           value={text}
           onChange={(event) => setText(event.target.value)}
           placeholder={ready ? "输入消息" : "群聊未就绪"}
           disabled={!ready}
           maxLength={500}
         />
+        <ChatEmojiPicker disabled={!ready} onPick={insertEmoji} />
         <Button type="submit" disabled={!ready || !text.trim()}>发送</Button>
       </form>
     </Card>
