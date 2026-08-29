@@ -18,6 +18,7 @@ import { CourseComments } from "./course-comments";
 import { CourseInteractions } from "./course-interactions";
 import { CourseTeacherCard } from "./course-teacher-card";
 import { CoursewarePanel } from "./courseware-panel";
+import { LessonMediaFrame } from "./lesson-media-frame";
 import { LiveLessonView } from "./live-lesson";
 import { StreamPlayer } from "./stream-player";
 import { VodPlayer } from "./vod-player";
@@ -158,6 +159,7 @@ export function CourseLearnView({ courseId }: { courseId: number }) {
         </div>
         <div className="mt-4 grid items-stretch gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
           <div className="min-w-0">
+            <LessonMediaFrame>
             {!active ? (
               <div className="flex aspect-video items-center justify-center rounded-xl bg-muted text-sm text-muted-foreground">暂无课时</div>
             ) : active.type === "live" && liveSessionId ? (
@@ -193,6 +195,7 @@ export function CourseLearnView({ courseId }: { courseId: number }) {
                 该课时暂无播放地址（当前支持录播视频与直播）。
               </div>
             )}
+            </LessonMediaFrame>
           </div>
           <CourseChat courseId={courseId} />
         </div>

@@ -82,3 +82,8 @@ button,
 a {
   -webkit-tap-highlight-color: transparent;
 }
+
+@keyframes im-danmaku {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(-100vw - 100%)); }
+}
