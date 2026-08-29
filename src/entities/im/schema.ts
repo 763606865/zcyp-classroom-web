@@ -32,13 +32,16 @@ export const imConfigSchema = z.object({
 
 export const imChatMessageSchema = z.object({
   id: z.union([z.string(), z.number()]).optional(),
-  conversation_id: z.string().optional(),
+  message_no: z.string().optional(),
   conversation_no: z.string().optional(),
-  content: z.string().optional(),
+  client_msg_id: z.string().optional(),
+  content: z.union([z.string(), z.record(z.string(), z.unknown())]).optional(),
   text: z.string().optional(),
-  body: z.string().optional(),
+  body: z.union([z.string(), z.record(z.string(), z.unknown())]).optional(),
   type: z.string().optional(),
+  message_type: z.string().optional(),
   created_at: nullableString,
+  sender_user_id: z.union([z.string(), z.number()]).optional(),
   user_id: z.union([z.string(), z.number()]).optional(),
   sender_id: z.union([z.string(), z.number()]).optional(),
   user: z.object({
@@ -55,18 +58,15 @@ export const imChatMessageSchema = z.object({
 }).passthrough();
 
 export const imConversationSchema = z.object({
-  conversation_no: z.string().optional(),
+  conversation_no: z.string(),
   key: z.string().optional(),
   type: z.string().optional(),
   course_id: z.number().optional(),
   class_id: z.number().optional(),
   title: z.string().optional(),
-  id: z.union([z.string(), z.number()]).optional(),
-  conversation_id: z.union([z.string(), z.number()]).optional(),
 }).passthrough();
 
 export const imChatroomSchema = imConfigSchema.extend({
-  conversation_id: z.union([z.string(), z.number()]).optional(),
   conversation_no: z.string().optional(),
   conversation: imConversationSchema.optional(),
   title: z.string().optional(),

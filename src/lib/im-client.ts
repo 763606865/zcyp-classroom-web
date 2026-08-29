@@ -26,20 +26,31 @@ function pickString(...values: unknown[]) {
   return "";
 }
 
-export function normalizeChatMessage(raw: ImChatMessage | Record<string, unknown>, conversationId: string): ChatMessage | null {
-  const record = raw as ImChatMessage;
-  const nested = asRecord(record.body) ?? asRecord((record as Record<string, unknown>).payload);
-  const content = pickString(record.content, record.text, record.body, nested?.content, nested?.text);
+export function normalizeChatMessage(raw: ImChatMessage | Record<string, unknown>, conversationNo: string): ChatMessage | null {
+  const record = raw as ImChatMessage & Record<string, unknown>;
+  const nested = asRecord(record.body) ?? asRecord(record.payload) ?? asRecord(record.content);
+  const content = pickString(
+    typeof record.content === "string" ? record.content : undefined,
+    record.text,
+    nested?.text,
+    nested?.content,
+    typeof record.body === "string" ? record.body : undefined,
+  );
   if (!content) return null;
   const user = record.user ?? record.sender;
   return {
-    id: pickString(record.id, `${Date.now()}-${content.slice(0, 8)}`),
-    conversationId: pickString(record.conversation_no, record.conversation_id, conversationId),
+    id: pickString(record.message_no, record.id, record.client_msg_id, `${Date.now()}-${content.slice(0, 8)}`),
+    conversationId: pickString(record.conversation_no, conversationNo),
     content,
-    userId: pickString(record.user_id, record.sender_id, user?.id) || undefined,
+    userId: pickString(record.sender_user_id, record.user_id, record.sender_id, user?.id) || undefined,
     userName: pickString(user?.nick_name, user?.real_name, user?.name, "学员") || "学员",
     createdAt: record.created_at ?? undefined,
   };
+}
+
+function nestedConversationNo(data: Record<string, unknown>) {
+  const conversation = asRecord(data.conversation);
+  return pickString(conversation?.conversation_no);
 }
 
 function flattenImConfig(config: ImConfig): ImConfig {
@@ -109,41 +120,35 @@ class ImClient {
     });
     const room = result.data;
     if (room.enabled === false) throw new Error("即时通讯未启用");
-    const conversationId = pickString(
-      room.conversation?.conversation_no,
-      room.conversation_no,
-      room.conversation_id,
-      room.conversation?.conversation_id,
-      room.conversation?.id,
-    );
-    if (!conversationId) throw new Error("聊天室未返回会话号");
-    this.conversations.add(conversationId);
-    const history = (room.messages ?? []).map((item) => normalizeChatMessage(item, conversationId)).filter((item): item is ChatMessage => Boolean(item));
+    const conversationNo = pickString(room.conversation?.conversation_no, room.conversation_no);
+    if (!conversationNo) throw new Error("聊天室未返回会话号");
+    this.conversations.add(conversationNo);
+    const history = (room.messages ?? []).map((item) => normalizeChatMessage(item, conversationNo)).filter((item): item is ChatMessage => Boolean(item));
     if (history.length) {
-      this.messages.set(conversationId, history);
+      this.messages.set(conversationNo, history);
       this.emit();
     }
     this.start({ ...this.config, ...room, enabled: true });
-    this.join(conversationId);
+    this.join(conversationNo);
     return {
-      conversationId,
+      conversationId: conversationNo,
       title: pickString(room.conversation?.title, room.title, "班级群聊"),
       classId: room.conversation?.class_id,
     };
   }
 
-  sendText(conversationId: string, content: string) {
+  sendText(conversationNo: string, content: string) {
     const event = this.config?.send_event || "message.send";
     this.send(event, {
-      conversation_no: conversationId,
-      conversation_id: conversationId,
+      conversation_no: conversationNo,
+      message_type: "text",
       type: "text",
       content,
       client_msg_id: `${Date.now()}`,
     });
     const mine: ChatMessage = {
       id: `local-${Date.now()}`,
-      conversationId,
+      conversationId: conversationNo,
       content,
       userId: pickString(this.config?.user_id) || undefined,
       userName: "我",
@@ -152,8 +157,8 @@ class ImClient {
     this.push(mine);
   }
 
-  getMessages(conversationId: string) {
-    return this.messages.get(conversationId) ?? [];
+  getMessages(conversationNo: string) {
+    return this.messages.get(conversationNo) ?? [];
   }
 
   subscribe(listener: Listener) {
@@ -208,7 +213,7 @@ class ImClient {
       this.connecting = false;
       this.retries = 0;
       this.authenticate();
-      this.conversations.forEach((id) => this.join(id));
+      this.conversations.forEach((conversationNo) => this.join(conversationNo));
       this.startHeartbeat();
     };
     socket.onmessage = (event) => this.handleMessage(String(event.data));
@@ -228,9 +233,9 @@ class ImClient {
     });
   }
 
-  private join(conversationId: string) {
+  private join(conversationNo: string) {
     if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return;
-    this.send(this.config?.join_event || "conversation.join", { conversation_no: conversationId });
+    this.send(this.config?.join_event || "conversation.join", { conversation_no: conversationNo });
   }
 
   private startHeartbeat() {
@@ -256,8 +261,8 @@ class ImClient {
       const event = pickString(record.event, record.type, record.name);
       const data = asRecord(record.data) ?? asRecord(record.payload) ?? record;
       if (event.includes("message") && event !== this.config?.send_event) {
-        const conversationId = pickString(data.conversation_no, data.conversation_id, [...this.conversations][0]);
-        const message = normalizeChatMessage(data as ImChatMessage, conversationId);
+        const conversationNo = pickString(data.conversation_no, nestedConversationNo(data), [...this.conversations][0]);
+        const message = normalizeChatMessage(data as ImChatMessage, conversationNo);
         if (message) this.push(message);
       }
     }
