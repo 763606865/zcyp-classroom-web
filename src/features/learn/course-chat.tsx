@@ -50,12 +50,16 @@ export function CourseChat({ courseId }: { courseId: number }) {
     bottomRef.current?.scrollIntoView({ block: "end" });
   }, [messages.length]);
 
-  function submit(event: FormEvent) {
+  async function submit(event: FormEvent) {
     event.preventDefault();
     const content = text.trim();
     if (!content || !conversationId) return;
-    imClient.sendText(conversationId, content);
     setText("");
+    try {
+      await imClient.sendText(conversationId, content);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : getApiErrorMessage(err, "消息发送失败"));
+    }
   }
 
   const visible = conversationId
@@ -70,7 +74,7 @@ export function CourseChat({ courseId }: { courseId: number }) {
         {!error && !ready ? <p className="text-muted-foreground">正在加入群聊…</p> : null}
         {ready && visible.length === 0 ? <p className="text-muted-foreground">还没有消息，打个招呼吧。</p> : null}
         {visible.map((item) => {
-          const mine = item.userId && user ? String(item.userId) === String(user.id) || item.userName === "我" : item.userName === "我";
+          const mine = imClient.isOwnMessage(item, [user?.id, user?.uuid]);
           return (
             <div key={item.id} className={mine ? "text-right" : ""}>
               <p className="text-xs text-muted-foreground">{mine ? "我" : item.userName}</p>

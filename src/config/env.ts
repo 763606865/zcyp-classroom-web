@@ -7,6 +7,10 @@ const booleanFromString = z
 
 const publicEnvSchema = z.object({
   NEXT_PUBLIC_API_URL: z.url().transform((value) => value.replace(/\/$/, "")),
+  NEXT_PUBLIC_IM_API_URL: z.string().optional().transform((value) => {
+    const trimmed = value?.trim().replace(/\/$/, "") ?? "";
+    return trimmed || undefined;
+  }),
   NEXT_PUBLIC_APP_VERSION: z.string().min(1).default("0.1.0"),
   NEXT_PUBLIC_APP_BUILD: z.string().min(1).default("1"),
   NEXT_PUBLIC_APP_CHANNEL: z.string().min(1).default("web"),
@@ -40,6 +44,7 @@ export const publicEnv = parseEnv(
   publicEnvSchema,
   {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+    NEXT_PUBLIC_IM_API_URL: process.env.NEXT_PUBLIC_IM_API_URL,
     NEXT_PUBLIC_APP_VERSION: process.env.NEXT_PUBLIC_APP_VERSION,
     NEXT_PUBLIC_APP_BUILD: process.env.NEXT_PUBLIC_APP_BUILD,
     NEXT_PUBLIC_APP_CHANNEL: process.env.NEXT_PUBLIC_APP_CHANNEL,
