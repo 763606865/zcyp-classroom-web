@@ -114,6 +114,7 @@ async function requestOnce<T>(path: `/api/${string}`, options: ApiRequestOptions
     try {
       data = options.responseSchema ? options.responseSchema.parse(payload.data) as T : payload.data as T;
     } catch (error) {
+      logger.warn("API 响应数据校验失败", { method: options.method ?? "GET", path, requestId: responseRequestId, error });
       throw new ApiValidationError(responseRequestId, error);
     }
 
