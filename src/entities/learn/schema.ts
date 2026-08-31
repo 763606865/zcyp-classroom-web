@@ -193,6 +193,84 @@ export const courseInteractionSchema = z.object({
   share_url: z.string().optional(),
 }).passthrough();
 
+export const practiceQuestionOptionSchema = z.object({
+  key: z.string(),
+  text: z.string(),
+}).passthrough();
+
+export const practiceQuestionStatsOptionSchema = z.object({
+  key: z.string(),
+  count: z.number(),
+  ratio: z.number().nullable().optional(),
+}).passthrough();
+
+export const practiceQuestionStatsSchema = z.object({
+  answered_count: z.number(),
+  correct_count: z.number(),
+  wrong_count: z.number(),
+  pending_count: z.number().optional(),
+  options: z.array(practiceQuestionStatsOptionSchema).optional(),
+}).passthrough();
+
+export const practiceQuestionSchema = z.object({
+  id: z.number(),
+  type: z.string(),
+  stem: z.string(),
+  options: z.array(practiceQuestionOptionSchema).optional(),
+  score: z.number().optional(),
+  sort: z.number().optional(),
+  user_answer: z.array(z.string()).nullable().optional(),
+  is_correct: z.boolean().nullable().optional(),
+  earned_score: nullableNumber,
+  correct_answer: z.array(z.string()).nullable().optional(),
+  analysis: nullableString,
+  stats: practiceQuestionStatsSchema.nullable().optional(),
+}).passthrough();
+
+export const practiceAttemptSchema = z.object({
+  id: z.number(),
+  attempt_no: z.number().optional(),
+  status: z.string(),
+  score: nullableNumber,
+  correct_count: z.number().optional(),
+  answered_count: z.number().optional(),
+  class_id: nullableNumber,
+  started_at: nullableString,
+  completed_at: nullableString,
+  practice: z.object({
+    id: z.number(),
+    title: z.string(),
+    description: nullableString,
+    status: z.string().optional(),
+    question_count: z.number().optional(),
+    total_score: z.number().optional(),
+    show_answer_immediately: z.boolean().optional(),
+  }).passthrough().optional(),
+  questions: z.array(practiceQuestionSchema).optional(),
+}).passthrough();
+
+export const lessonPracticeSummarySchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  description: nullableString,
+  status: z.string(),
+  question_count: z.number(),
+  total_score: z.number(),
+  show_answer_immediately: z.boolean().optional(),
+  my_attempt: z.object({
+    id: z.number(),
+    attempt_no: z.number().optional(),
+    status: z.string(),
+    score: nullableNumber,
+    correct_count: z.number().optional(),
+    answered_count: z.number().optional(),
+    started_at: nullableString,
+    completed_at: nullableString,
+  }).passthrough().nullable().optional(),
+}).passthrough();
+
+export const lessonPracticesSchema = z.array(lessonPracticeSummarySchema);
+
 export const myPracticeRecordSchema = z.object({
   id: z.number(),
   attempt_no: z.number(),
@@ -227,6 +305,9 @@ export const myPracticeRecordSchema = z.object({
 });
 
 export type MyPracticeRecord = z.infer<typeof myPracticeRecordSchema>;
+export type LessonPracticeSummary = z.infer<typeof lessonPracticeSummarySchema>;
+export type PracticeAttempt = z.infer<typeof practiceAttemptSchema>;
+export type PracticeQuestion = z.infer<typeof practiceQuestionSchema>;
 
 export type LearnLesson = z.infer<typeof learnLessonSchema>;
 export type CourseLearn = z.infer<typeof courseLearnSchema>;

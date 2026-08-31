@@ -141,11 +141,12 @@ export function LiveStreamPlayer({ lines }: { lines: LivePlayLine[] }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [error, setError] = useState<string>();
   const [loading, setLoading] = useState(true);
-  const key = lines.map((line) => `${line.kind}:${line.src}`).join("|");
+  const linesSnapshot = JSON.stringify(lines);
 
   useEffect(() => {
+    const playLines = JSON.parse(linesSnapshot) as LivePlayLine[];
     const video = videoRef.current;
-    if (!video || lines.length === 0) return;
+    if (!video || playLines.length === 0) return;
     const media = video;
     const abort = new AbortController();
     let stop: (() => void) | undefined;
@@ -154,7 +155,7 @@ export function LiveStreamPlayer({ lines }: { lines: LivePlayLine[] }) {
       setLoading(true);
       setError(undefined);
       let lastError: unknown;
-      for (const line of lines) {
+      for (const line of playLines) {
         if (abort.signal.aborted) return;
         try {
           stop?.();
@@ -190,7 +191,7 @@ export function LiveStreamPlayer({ lines }: { lines: LivePlayLine[] }) {
       media.removeAttribute("src");
       media.load();
     };
-  }, [key]);
+  }, [linesSnapshot]);
 
   return (
     <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-black">

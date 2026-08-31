@@ -3,25 +3,17 @@ import {
   myClassSchema,
   myCourseSchema,
   myExamSchema,
+  myFavoriteItemSchema,
   myTrainingSchema,
   paginatedSchema,
 } from "@/entities/classroom";
-import { myPracticeRecordSchema } from "@/entities/learn";
 import { apiClient } from "@/lib/http";
 
-const favoriteCourseSchema = z.object({
-  id: z.number(),
-  created_at: z.string().nullable().optional(),
-  course: z.object({
-    id: z.number(),
-    title: z.string(),
-  }).passthrough(),
-}).passthrough();
-const myFavoritesSchema = paginatedSchema(favoriteCourseSchema);
+const myFavoritesSchema = paginatedSchema(myFavoriteItemSchema);
 
-export function getMyCourseFavorites() {
-  return apiClient.get<z.infer<typeof myFavoritesSchema>>("/api/me/course-favorites", {
-    query: { per_page: 20 },
+export function getMyFavorites(params?: { type?: string; per_page?: number; page?: number }) {
+  return apiClient.get<z.infer<typeof myFavoritesSchema>>("/api/me/favorites", {
+    query: { type: params?.type, per_page: params?.per_page ?? 15, page: params?.page },
     responseSchema: myFavoritesSchema,
     retry: 0,
   });
@@ -60,16 +52,6 @@ export function getMyExams(status?: string) {
   return apiClient.get<z.infer<typeof myExamsSchema>>("/api/me/exams", {
     query: { status, per_page: 20 },
     responseSchema: myExamsSchema,
-    retry: 0,
-  });
-}
-
-const myPracticesSchema = paginatedSchema(myPracticeRecordSchema);
-
-export function getMyPractices(params?: { status?: string; per_page?: number; page?: number }) {
-  return apiClient.get<z.infer<typeof myPracticesSchema>>("/api/me/practices", {
-    query: { status: params?.status, per_page: params?.per_page ?? 15, page: params?.page },
-    responseSchema: myPracticesSchema,
     retry: 0,
   });
 }

@@ -8,11 +8,15 @@ import {
   courseInteractionSchema,
   coursewaresSchema,
   submitCourseCommentSchema,
+  lessonPracticesSchema,
+  practiceAttemptSchema,
   type CourseCommentList,
   type CourseInteraction,
   type CourseLearn,
   type Courseware,
+  type LessonPracticeSummary,
   type LiveSessionPayload,
+  type PracticeAttempt,
   type VodPlayAuth,
 } from "@/entities/learn";
 import { apiClient, getWebClientInfo } from "@/lib/http";
@@ -122,6 +126,40 @@ export function updateLessonProgress(
     `/api/me/courses/${courseId}/lessons/${lessonId}/progress`,
     body,
     { responseSchema: updateLessonProgressSchema, retry: 0 },
+  );
+}
+
+export function getLessonPractices(courseId: number, lessonId: number) {
+  return apiClient.get<LessonPracticeSummary[]>(
+    `/api/me/courses/${courseId}/lessons/${lessonId}/practices`,
+    { responseSchema: lessonPracticesSchema, retry: 0 },
+  );
+}
+
+export function startLessonPractice(courseId: number, lessonId: number, practiceId: number) {
+  return apiClient.post<PracticeAttempt>(
+    `/api/me/courses/${courseId}/lessons/${lessonId}/practices/${practiceId}/start`,
+    {},
+    { responseSchema: practiceAttemptSchema, retry: 0 },
+  );
+}
+
+export function getPracticeAttempt(userPracticeId: number) {
+  return apiClient.get<PracticeAttempt>(`/api/me/practices/${userPracticeId}`, {
+    responseSchema: practiceAttemptSchema,
+    retry: 0,
+  });
+}
+
+export function submitPracticeQuestionAnswer(
+  userPracticeId: number,
+  questionId: number,
+  answer: string[],
+) {
+  return apiClient.post<PracticeAttempt>(
+    `/api/me/practices/${userPracticeId}/questions/${questionId}/answer`,
+    { answer },
+    { responseSchema: practiceAttemptSchema, retry: 0 },
   );
 }
 

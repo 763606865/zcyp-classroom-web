@@ -11,10 +11,10 @@ import { useAuth } from "@/features/auth/auth-provider";
 import { formatDateTime, statusLabel } from "@/features/classroom/labels";
 import { getApiErrorMessage } from "@/lib/forms";
 import { ProfileForm } from "@/features/user/profile-form";
-import { getMyClasses, getMyCourseFavorites, getMyCourses, getMyExams, getMyTrainings } from "./api";
-import { MyPracticesPanel } from "./my-practices";
+import { getMyClasses, getMyCourses, getMyExams, getMyTrainings } from "./api";
+import { MyFavoritesPanel } from "./my-favorites";
 
-type Tab = "profile" | "trainings" | "courses" | "favorites" | "classes" | "exams" | "practices";
+type Tab = "profile" | "trainings" | "courses" | "favorites" | "classes" | "exams";
 
 const tabs: { id: Tab; label: string }[] = [
   { id: "profile", label: "资料" },
@@ -23,7 +23,6 @@ const tabs: { id: Tab; label: string }[] = [
   { id: "favorites", label: "我的收藏" },
   { id: "classes", label: "我的班级" },
   { id: "exams", label: "我的考试" },
-  { id: "practices", label: "我的练习" },
 ];
 
 export function AccountPageView() {
@@ -67,7 +66,6 @@ export function AccountPageView() {
         {tab === "favorites" ? <MyFavoritesPanel /> : null}
         {tab === "classes" ? <MyClassesPanel /> : null}
         {tab === "exams" ? <MyExamsPanel /> : null}
-        {tab === "practices" ? <MyPracticesPanel /> : null}
       </section>
     </div>
   );
@@ -132,36 +130,6 @@ function MyCoursesPanel() {
             <Link href={`/account/courses/${item.course.id}`} className="font-semibold hover:text-primary">{item.course.title}</Link>
             <p className="mt-1 text-sm text-muted-foreground">进度 {item.progress ?? 0}%</p>
           </div>
-          <Link href={`/account/courses/${item.course.id}`} className="text-sm text-primary">去上课</Link>
-        </Card>
-      ))}
-    </div>
-  );
-}
-
-function MyFavoritesPanel() {
-  const [items, setItems] = useState<{ id: number; course: { id: number; title: string } }[]>([]);
-  const [error, setError] = useState<string>();
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    void getMyCourseFavorites()
-      .then((result) => { if (!cancelled) setItems(result.data.data); })
-      .catch((err: unknown) => { if (!cancelled) setError(getApiErrorMessage(err)); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, []);
-
-  if (loading) return <Spinner />;
-  if (error) return <EmptyState title="无法加载收藏" description={error} />;
-  if (items.length === 0) return <EmptyState title="还没有收藏课程" description="在学习页点击收藏即可在这里查看。" />;
-
-  return (
-    <div className="grid gap-3">
-      {items.map((item) => (
-        <Card key={item.id} className="flex flex-wrap items-center justify-between gap-3">
-          <Link href={`/account/courses/${item.course.id}`} className="font-semibold hover:text-primary">{item.course.title}</Link>
           <Link href={`/account/courses/${item.course.id}`} className="text-sm text-primary">去上课</Link>
         </Card>
       ))}

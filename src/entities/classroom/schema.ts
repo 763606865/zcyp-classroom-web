@@ -132,6 +132,23 @@ export const myClassSchema = z.object({
   teacher: teacherSchema.nullable().optional(),
 });
 
+export const myFavoriteItemSchema = z.object({
+  id: z.number(),
+  type: z.string(),
+  favorited_at: nullableString,
+  course: courseCardSchema.passthrough().nullable().optional(),
+  training: trainingCardSchema.extend({
+    class: z.object({
+      id: z.number(),
+      name: z.string(),
+      code: nullableString,
+      status: z.string().optional(),
+      student_count: z.number().optional(),
+      max_students: nullableNumber,
+    }).passthrough().nullable().optional(),
+  }).passthrough().nullable().optional(),
+}).passthrough();
+
 export const myExamSchema = z.object({
   id: z.number(),
   attempt_no: z.number().optional(),
@@ -199,4 +216,5 @@ export type MyCourse = z.infer<typeof myCourseSchema>;
 export type MyTraining = z.infer<typeof myTrainingSchema>;
 export type MyClass = z.infer<typeof myClassSchema>;
 export type MyExam = z.infer<typeof myExamSchema>;
+export type MyFavoriteItem = z.infer<typeof myFavoriteItemSchema>;
 export type Order = z.infer<typeof orderSchema>;

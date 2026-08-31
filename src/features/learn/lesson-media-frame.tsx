@@ -79,7 +79,7 @@ export function LessonMediaFrame({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="relative overflow-hidden rounded-xl">
+    <div className="relative z-0 isolate overflow-hidden rounded-xl">
       {children}
       <DanmakuLayer enabled={enabled} />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-end bg-gradient-to-t from-black/55 to-transparent px-3 pb-2 pt-10">

@@ -19,6 +19,7 @@ import { CourseInteractions } from "./course-interactions";
 import { CourseTeacherCard } from "./course-teacher-card";
 import { CoursewarePanel } from "./courseware-panel";
 import { LessonMediaFrame } from "./lesson-media-frame";
+import { LessonPracticePanel } from "./lesson-practice-panel";
 import { LiveLessonView } from "./live-lesson";
 import { StreamPlayer } from "./stream-player";
 import { VodPlayer } from "./vod-player";
@@ -196,6 +197,7 @@ export function CourseLearnView({ courseId }: { courseId: number }) {
               </div>
             )}
             </LessonMediaFrame>
+            {active ? <LessonPracticePanel key={active.id} courseId={courseId} lessonId={active.id} /> : null}
           </div>
           <CourseChat courseId={courseId} />
         </div>
