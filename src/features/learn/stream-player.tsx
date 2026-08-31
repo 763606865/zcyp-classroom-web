@@ -97,6 +97,7 @@ export function StreamPlayer({
       className="aspect-video w-full rounded-xl bg-black"
       controls
       playsInline
+      preload="auto"
       autoPlay={autoPlay}
       onTimeUpdate={(event) => {
         const seconds = Math.floor(event.currentTarget.currentTime);

@@ -5,6 +5,8 @@ const PLAYER_JS = "https://web.sdk.qcloud.com/player/tcplayer/release/v5.3.2/tcp
 export type TcPlayerInstance = {
   dispose: () => void;
   currentTime: (seconds?: number) => number | void;
+  play?: () => Promise<void> | void;
+  muted?: (value?: boolean) => boolean | void;
   loadVideoByID?: (options: { fileID: string; appID: string; psign: string }) => void;
   ready: (callback: () => void) => void;
   on: (event: string, handler: (...args: unknown[]) => void) => void;
