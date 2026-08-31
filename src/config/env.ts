@@ -14,6 +14,10 @@ const publicEnvSchema = z.object({
   NEXT_PUBLIC_APP_VERSION: z.string().min(1).default("0.1.0"),
   NEXT_PUBLIC_APP_BUILD: z.string().min(1).default("1"),
   NEXT_PUBLIC_APP_CHANNEL: z.string().min(1).default("web"),
+  NEXT_PUBLIC_TENCENT_VOD_DOMAIN: z.string().optional().transform((value) => {
+    const trimmed = value?.trim().replace(/^https?:\/\//i, "").replace(/\/$/, "") ?? "";
+    return trimmed || undefined;
+  }),
 });
 
 const serverEnvSchema = z.object({
@@ -48,6 +52,7 @@ export const publicEnv = parseEnv(
     NEXT_PUBLIC_APP_VERSION: process.env.NEXT_PUBLIC_APP_VERSION,
     NEXT_PUBLIC_APP_BUILD: process.env.NEXT_PUBLIC_APP_BUILD,
     NEXT_PUBLIC_APP_CHANNEL: process.env.NEXT_PUBLIC_APP_CHANNEL,
+    NEXT_PUBLIC_TENCENT_VOD_DOMAIN: process.env.NEXT_PUBLIC_TENCENT_VOD_DOMAIN,
   },
   "公开",
 );

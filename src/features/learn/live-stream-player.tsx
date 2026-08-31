@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
-import mpegts from "mpegts.js";
 import { Spinner } from "@/components/ui/spinner";
 import { getApiErrorMessage } from "@/lib/forms";
 import type { LivePlayLine } from "./pick-live-line";
@@ -57,15 +56,51 @@ async function playLine(
   }
 
   if (line.kind === "flv") {
+    const mpegts = (await import("mpegts.js")).default;
     if (!mpegts.isSupported()) throw new Error("当前浏览器不支持 FLV");
-    const player = mpegts.createPlayer({ type: "flv", isLive: true, url: line.src }, { enableWorker: false, liveBufferLatencyChasing: true });
+    const player = mpegts.createPlayer(
+      { type: "flv", isLive: true, url: line.src, hasAudio: true, hasVideo: true },
+      { enableWorker: false, enableStashBuffer: false, liveBufferLatencyChasing: true },
+    );
     player.attachMediaElement(video);
-    player.load();
-    tryAutoPlay(video);
-    await waitUntilPlaying(video, 8_000, signal);
-    return () => {
-      player.destroy();
+    const disposePlayer = () => {
+      try {
+        player.pause();
+        player.unload();
+        player.detachMediaElement();
+        player.destroy();
+      } catch {
+        // 起播失败时实例可能已部分销毁。
+      }
     };
+    try {
+      await new Promise<void>((resolve, reject) => {
+        let settled = false;
+        const finish = (error?: Error) => {
+          if (settled) return;
+          settled = true;
+          player.off(mpegts.Events.ERROR, onPlayerError);
+          signal.removeEventListener("abort", onAbort);
+          if (error) reject(error);
+          else resolve();
+        };
+        const onPlayerError = (_type: string, info?: { msg?: string }) => {
+          finish(new Error(info?.msg || "FLV 拉流失败"));
+        };
+        const onAbort = () => finish(new Error("已取消"));
+        player.on(mpegts.Events.ERROR, onPlayerError);
+        signal.addEventListener("abort", onAbort);
+        player.load();
+        tryAutoPlay(video);
+        void waitUntilPlaying(video, 8_000, signal).then(() => finish()).catch((error: unknown) => {
+          finish(error instanceof Error ? error : new Error("FLV 起播失败"));
+        });
+      });
+      return () => disposePlayer();
+    } catch (error) {
+      disposePlayer();
+      throw error;
+    }
   }
 
   if (video.canPlayType("application/vnd.apple.mpegurl")) {
@@ -142,7 +177,12 @@ export function LiveStreamPlayer({ lines }: { lines: LivePlayLine[] }) {
       }
     }
 
-    void start();
+    void start().catch((err: unknown) => {
+      if (!abort.signal.aborted) {
+        setError(getApiErrorMessage(err, "直播播放失败"));
+        setLoading(false);
+      }
+    });
     return () => {
       abort.abort();
       stop?.();

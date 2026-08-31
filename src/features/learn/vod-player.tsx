@@ -6,7 +6,9 @@ import type { VodPlayAuth } from "@/entities/learn";
 import { getApiErrorMessage } from "@/lib/forms";
 import { loadAliplayer, type AliplayerInstance } from "./aliplayer";
 import { getLessonPlayAuth } from "./api";
+import { StreamPlayer } from "./stream-player";
 import { loadTcPlayer, type TcPlayerInstance } from "./tcplayer";
+import { resolveTencentVodUrl } from "./tencent-vod-url";
 
 type PlayerHandle = {
   dispose: () => void;
@@ -137,6 +139,8 @@ export function VodPlayer({
   const onEndedRef = useRef(onEnded);
   const [error, setError] = useState<string>();
   const [loading, setLoading] = useState(true);
+  const [tencentSrc, setTencentSrc] = useState<string>();
+  const [tencentStartAt, setTencentStartAt] = useState(startAt);
 
   useEffect(() => {
     onProgressRef.current = onProgress;
@@ -165,9 +169,24 @@ export function VodPlayer({
 
       playerRef.current?.dispose();
       playerRef.current = null;
+      setTencentSrc(undefined);
       mountContainer(host, playerId, provider === "tencent" ? "video" : "div");
 
       if (provider === "tencent") {
+        try {
+          const playUrl = await resolveTencentVodUrl(auth);
+          if (cancelled) return;
+          setTencentSrc(playUrl);
+          setTencentStartAt(startAtRef.current);
+          setLoading(false);
+          const expiresIn = auth.expires_in ?? 3000;
+          refreshTimer = window.setTimeout(() => {
+            void refreshAuth(provider);
+          }, Math.max((expiresIn - 90) * 1000, 30_000));
+          return;
+        } catch {
+          // GetPlayInfo 失败时回退到 TCPlayer fileID 播放。
+        }
         const created = await createTencentPlayer(playerId, auth, startAtRef.current);
         if (cancelled) {
           created.handle.dispose();
@@ -199,17 +218,24 @@ export function VodPlayer({
         const next = await getLessonPlayAuth(courseId, lessonId);
         if (cancelled) return;
         const auth = next.data;
-        const current = Math.floor(playerRef.current?.getCurrentTime() || 0);
+        const current = Math.floor(playerRef.current?.getCurrentTime() || lastReported.current || 0);
         if (provider === "tencent") {
-          const appId = auth.app_id == null || auth.app_id === "" ? "" : String(auth.app_id);
-          tencentPlayer?.loadVideoByID?.({
-            fileID: mediaIdOf(auth),
-            appID: appId,
-            psign: auth.play_auth,
-          });
-          tencentPlayer?.ready?.(() => {
-            if (current > 1) tencentPlayer?.currentTime(current);
-          });
+          try {
+            const playUrl = await resolveTencentVodUrl(auth);
+            if (cancelled) return;
+            setTencentStartAt(current);
+            setTencentSrc(playUrl);
+          } catch {
+            const appId = auth.app_id == null || auth.app_id === "" ? "" : String(auth.app_id);
+            tencentPlayer?.loadVideoByID?.({
+              fileID: mediaIdOf(auth),
+              appID: appId,
+              psign: auth.play_auth,
+            });
+            tencentPlayer?.ready?.(() => {
+              if (current > 1) tencentPlayer?.currentTime(current);
+            });
+          }
         } else {
           aliPlayer?.replayByVidAndPlayauth?.(mediaIdOf(auth), auth.play_auth);
         }
@@ -252,7 +278,16 @@ export function VodPlayer({
 
   return (
     <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-black">
-      <div ref={hostRef} className="absolute inset-0 h-full w-full" />
+      {tencentSrc ? (
+        <StreamPlayer
+          src={tencentSrc}
+          startAt={tencentStartAt}
+          autoPlay
+          onProgress={onProgress}
+          onEnded={onEnded}
+        />
+      ) : null}
+      <div ref={hostRef} className={tencentSrc ? "hidden" : "absolute inset-0 h-full w-full"} />
       {loading ? (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40">
           <Spinner label="加载视频" />
