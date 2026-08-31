@@ -8,7 +8,7 @@ import { formatDateTime } from "@/features/classroom/labels";
 import { getApiErrorMessage } from "@/lib/forms";
 import { getLiveSession, sendLiveHeartbeat } from "./api";
 import { LiveStreamPlayer } from "./live-stream-player";
-import { pickLivePlayLine } from "./pick-live-line";
+import { orderedLiveLines } from "./pick-live-line";
 import { StreamPlayer } from "./stream-player";
 
 function playbackUrl(payload: LiveSessionPayload) {
@@ -111,7 +111,7 @@ export function LiveLessonView({
     return <div className="flex aspect-video items-center justify-center rounded-xl bg-muted text-sm text-muted-foreground">{error ?? "暂无直播信息"}</div>;
   }
 
-  const liveLine = pickLivePlayLine(payload.play_urls);
+  const liveLines = orderedLiveLines(payload.play_urls);
   const replay = playbackUrl(payload);
   const session = payload.session;
 
@@ -124,10 +124,10 @@ export function LiveLessonView({
     );
   }
 
-  if (status === "living" && liveLine.src) {
+  if (status === "living" && liveLines.length > 0) {
     return (
       <div>
-        <LiveStreamPlayer src={liveLine.src} fallbackUrl={liveLine.fallbackUrl} />
+        <LiveStreamPlayer lines={liveLines} />
         <p className="mt-2 text-sm text-muted-foreground">
           直播中{session.online_count != null ? ` · ${session.online_count} 人在看` : ""}
         </p>
@@ -135,7 +135,7 @@ export function LiveLessonView({
     );
   }
 
-  if (status === "living" && !liveLine.src) {
+  if (status === "living" && liveLines.length === 0) {
     return (
       <div className="flex aspect-video items-center justify-center rounded-xl bg-muted p-6 text-center text-sm text-muted-foreground">
         直播已开始，但当前没有可用的播放地址。
