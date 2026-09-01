@@ -10,6 +10,7 @@ const loginResponseSchema = z.object({
   im: imConfigSchema.optional(),
 });
 const meResponseSchema = z.object({ user: userSchema, im: imConfigSchema.optional() });
+const ecosystemTicketSchema = z.object({ ticket: z.string().min(1) });
 
 export function sendLoginSmsCode(phone: string) {
   return apiClient.post<{ message: string; expires_in: number }>("/api/auth/sms-code", { phone }, { responseSchema: smsCodeResponseSchema });
@@ -29,4 +30,12 @@ export function exchangeEcosystemTicket(ticket: string) {
 
 export function getCurrentUser(token?: string) {
   return apiClient.get<{ user: User; im?: ImConfig }>("/api/me", { token, responseSchema: meResponseSchema, retry: 0 });
+}
+
+export function getEcosystemTicket(targetAppCode: string) {
+  return apiClient.post<{ ticket: string }>(
+    "/api/auth/ecosystem/ticket",
+    { target_app_code: targetAppCode },
+    { responseSchema: ecosystemTicketSchema, retry: 0 },
+  );
 }

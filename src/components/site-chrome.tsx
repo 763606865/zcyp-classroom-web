@@ -6,6 +6,7 @@ import { siteConfig } from "@/config/site";
 import { cn } from "@/lib/utils/cn";
 import { Button } from "@/components/ui/button";
 import { AuthEntry } from "@/features/auth/auth-entry";
+import { EcosystemNavLink } from "@/features/auth/ecosystem-nav-link";
 import { useSystemSettings } from "@/features/system-settings/system-settings-provider";
 
 export function SiteHeader() {
@@ -27,18 +28,22 @@ export function SiteHeader() {
           <span className="truncate">{siteName}</span>
         </Link>
         <nav className="hidden items-center gap-5 text-sm lg:flex" aria-label="主导航">
-          {siteConfig.nav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "hover:text-primary",
-                pathname === item.href ? "font-medium text-primary" : "text-muted-foreground",
-              )}
-            >
-              {item.label}
-            </Link>
-          ))}
+          {siteConfig.nav.map((item) =>
+            "ecosystem" in item ? (
+              <EcosystemNavLink key={item.label} label={item.label} />
+            ) : (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "hover:text-primary",
+                  pathname === item.href ? "font-medium text-primary" : "text-muted-foreground",
+                )}
+              >
+                {item.label}
+              </Link>
+            ),
+          )}
         </nav>
         <div className="flex shrink-0 items-center gap-3">
           {settings?.customer_service_phone ? (

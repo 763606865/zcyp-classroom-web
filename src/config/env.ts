@@ -18,6 +18,15 @@ const publicEnvSchema = z.object({
     const trimmed = value?.trim().replace(/^https?:\/\//i, "").replace(/\/$/, "") ?? "";
     return trimmed || undefined;
   }),
+  // 中测易聘门户地址，用于生态票据跳转登录同步。
+  NEXT_PUBLIC_ZCYP_PORTAL_URL: z.string().optional().transform((value) => {
+    const trimmed = value?.trim().replace(/\/$/, "") ?? "";
+    return trimmed || "https://zcyp-web.jxhrm.com";
+  }),
+  NEXT_PUBLIC_ZCYP_APP_CODE: z.string().optional().transform((value) => {
+    const trimmed = value?.trim() ?? "";
+    return trimmed || "zcyp";
+  }),
 });
 
 const serverEnvSchema = z.object({
@@ -53,6 +62,8 @@ export const publicEnv = parseEnv(
     NEXT_PUBLIC_APP_BUILD: process.env.NEXT_PUBLIC_APP_BUILD,
     NEXT_PUBLIC_APP_CHANNEL: process.env.NEXT_PUBLIC_APP_CHANNEL,
     NEXT_PUBLIC_TENCENT_VOD_DOMAIN: process.env.NEXT_PUBLIC_TENCENT_VOD_DOMAIN,
+    NEXT_PUBLIC_ZCYP_PORTAL_URL: process.env.NEXT_PUBLIC_ZCYP_PORTAL_URL,
+    NEXT_PUBLIC_ZCYP_APP_CODE: process.env.NEXT_PUBLIC_ZCYP_APP_CODE,
   },
   "公开",
 );
