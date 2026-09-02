@@ -47,8 +47,34 @@ export function statusLabel(status: string) {
     submitted: "已提交",
     scored: "已出分",
     timeout: "已超时",
+    draft: "草稿",
+    reviewed: "已批改",
+    returned: "已退回",
+    closed: "已关闭",
   };
   return labels[status] ?? status;
+}
+
+export function homeworkProgressLabel(status: string) {
+  const labels: Record<string, string> = {
+    pending: "未开始",
+    draft: "草稿",
+    submitted: "待批改",
+    reviewed: "已批改",
+    returned: "已退回",
+  };
+  return labels[status] ?? statusLabel(status);
+}
+
+export function examProgressLabel(status: string) {
+  const labels: Record<string, string> = {
+    pending: "未开始",
+    in_progress: "作答中",
+    submitted: "待阅卷",
+    scored: "已出分",
+    timeout: "已超时",
+  };
+  return labels[status] ?? statusLabel(status);
 }
 
 export function payChannelLabel(channel?: string | null) {

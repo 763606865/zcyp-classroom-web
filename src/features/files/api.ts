@@ -15,5 +15,8 @@ export function uploadFile(file: File, directory: UploadDirectory = "other", sig
   const body = new FormData();
   body.set("file", file);
   body.set("directory", directory);
-  return apiClient.post("/api/files/upload", body, { responseSchema: uploadResponseSchema, signal });
+  return apiClient.post<z.infer<typeof uploadResponseSchema>>("/api/files/upload", body, {
+    responseSchema: uploadResponseSchema,
+    signal,
+  });
 }

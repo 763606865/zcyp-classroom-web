@@ -149,7 +149,32 @@ export const myFavoriteItemSchema = z.object({
   }).passthrough().nullable().optional(),
 }).passthrough();
 
-export const myExamSchema = z.object({
+const homeworkRelationSchema = z.object({
+  id: z.number(),
+  title: z.string().optional(),
+  name: z.string().optional(),
+  slug: z.string().optional(),
+}).passthrough();
+
+export const homeworkQuestionSchema = z.object({
+  id: z.number(),
+  type: z.string(),
+  stem: z.string(),
+  options: z.array(z.object({
+    key: z.union([z.string(), z.number()]).transform(String),
+    text: z.string().optional(),
+    content: z.string().optional(),
+  }).passthrough()).optional(),
+  score: nullableNumber,
+  sort: z.number().optional(),
+  user_answer: z.array(z.string()).nullable().optional(),
+  is_correct: z.boolean().nullable().optional(),
+  earned_score: nullableNumber,
+  correct_answer: z.array(z.string()).nullable().optional(),
+  analysis: nullableString,
+}).passthrough();
+
+export const examAttemptSchema = z.object({
   id: z.number(),
   attempt_no: z.number().optional(),
   status: z.string(),
@@ -159,17 +184,74 @@ export const myExamSchema = z.object({
   answered_count: nullableNumber,
   started_at: nullableString,
   submitted_at: nullableString,
-  exam: z.object({
+  scored_at: nullableString,
+}).passthrough();
+
+export const myExamSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  description: nullableString,
+  status: z.string(),
+  question_count: nullableNumber,
+  total_score: nullableNumber,
+  pass_score: nullableNumber,
+  duration_minutes: nullableNumber,
+  attempt_limit: z.number().optional(),
+  show_answer_after_submit: z.boolean().optional(),
+  start_at: nullableString,
+  end_at: nullableString,
+  progress_status: z.string(),
+  attempts_used: z.number().optional(),
+  can_start: z.boolean().optional(),
+  can_edit: z.boolean().optional(),
+  training: homeworkRelationSchema.nullable().optional(),
+  course: homeworkRelationSchema.nullable().optional(),
+  class: homeworkRelationSchema.nullable().optional(),
+  attempt: examAttemptSchema.nullable().optional(),
+  questions: z.array(homeworkQuestionSchema).optional(),
+}).passthrough();
+
+export const homeworkSubmissionSummarySchema = z.object({
+  id: z.number(),
+  content: nullableString,
+  attachment_urls: z.array(z.string()).optional(),
+  answers: z.array(z.object({
+    question_id: z.number(),
+    answer: z.array(z.string()),
+  }).passthrough()).optional(),
+  status: z.string(),
+  score: nullableNumber,
+  feedback: nullableString,
+  submitted_at: nullableString,
+  reviewed_at: nullableString,
+  can_edit: z.boolean().optional(),
+}).passthrough();
+
+export const myHomeworkSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  description: nullableString,
+  status: z.string(),
+  question_count: nullableNumber,
+  total_score: nullableNumber,
+  start_at: nullableString,
+  deadline_at: nullableString,
+  allow_late: z.boolean().optional(),
+  attachment_urls: z.array(z.string()).optional(),
+  progress_status: z.string(),
+  can_start: z.boolean().optional(),
+  can_edit: z.boolean().optional(),
+  training: homeworkRelationSchema.nullable().optional(),
+  course: homeworkRelationSchema.nullable().optional(),
+  class: homeworkRelationSchema.nullable().optional(),
+  lesson: homeworkRelationSchema.nullable().optional(),
+  submission: homeworkSubmissionSummarySchema.nullable().optional(),
+  questions: z.array(homeworkQuestionSchema).optional(),
+  reviewer: z.object({
     id: z.number(),
-    title: z.string(),
-    status: z.string().optional(),
-    total_score: nullableNumber,
-    pass_score: nullableNumber,
-    duration_minutes: nullableNumber,
-    start_at: nullableString,
-    end_at: nullableString,
-  }),
-});
+    name: z.string().optional(),
+  }).passthrough().nullable().optional(),
+}).passthrough();
 
 export const orderSchema = z.object({
   id: z.number(),
@@ -216,5 +298,7 @@ export type MyCourse = z.infer<typeof myCourseSchema>;
 export type MyTraining = z.infer<typeof myTrainingSchema>;
 export type MyClass = z.infer<typeof myClassSchema>;
 export type MyExam = z.infer<typeof myExamSchema>;
+export type HomeworkQuestion = z.infer<typeof homeworkQuestionSchema>;
+export type MyHomework = z.infer<typeof myHomeworkSchema>;
 export type MyFavoriteItem = z.infer<typeof myFavoriteItemSchema>;
 export type Order = z.infer<typeof orderSchema>;

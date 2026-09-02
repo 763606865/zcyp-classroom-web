@@ -1,2 +1,2 @@
 export { AccountPageView } from "./account-page";
-export { getMyClasses, getMyCourses, getMyExams, getMyTrainings } from "./api";
+export { getExamDetail, getHomeworkDetail, getMyClasses, getMyCourses, getMyExams, getMyHomeworks, getMyTrainings, saveExamAnswer, saveHomeworkAnswer, startExam, startHomework } from "./api";

@@ -6,15 +6,17 @@ import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Spinner } from "@/components/ui/spinner";
-import type { MyClass, MyCourse, MyExam, MyTraining } from "@/entities/classroom";
+import type { MyClass, MyCourse, MyTraining } from "@/entities/classroom";
 import { useAuth } from "@/features/auth/auth-provider";
 import { formatDateTime, statusLabel } from "@/features/classroom/labels";
 import { getApiErrorMessage } from "@/lib/forms";
 import { ProfileForm } from "@/features/user/profile-form";
-import { getMyClasses, getMyCourses, getMyExams, getMyTrainings } from "./api";
+import { getMyClasses, getMyCourses, getMyTrainings } from "./api";
+import { MyExamsPanel } from "./my-exams";
 import { MyFavoritesPanel } from "./my-favorites";
+import { MyHomeworksPanel } from "./my-homeworks";
 
-type Tab = "profile" | "trainings" | "courses" | "favorites" | "classes" | "exams";
+type Tab = "profile" | "trainings" | "courses" | "favorites" | "classes" | "homeworks" | "exams";
 
 const tabs: { id: Tab; label: string }[] = [
   { id: "profile", label: "资料" },
@@ -22,6 +24,7 @@ const tabs: { id: Tab; label: string }[] = [
   { id: "courses", label: "我的课程" },
   { id: "favorites", label: "我的收藏" },
   { id: "classes", label: "我的班级" },
+  { id: "homeworks", label: "我的作业" },
   { id: "exams", label: "我的考试" },
 ];
 
@@ -65,6 +68,7 @@ export function AccountPageView() {
         {tab === "courses" ? <MyCoursesPanel /> : null}
         {tab === "favorites" ? <MyFavoritesPanel /> : null}
         {tab === "classes" ? <MyClassesPanel /> : null}
+        {tab === "homeworks" ? <MyHomeworksPanel /> : null}
         {tab === "exams" ? <MyExamsPanel /> : null}
       </section>
     </div>
@@ -163,42 +167,6 @@ function MyClassesPanel() {
           <p className="mt-1 text-sm text-muted-foreground">
             {item.training?.title ?? "未关联培训"} · {statusLabel(item.member_status ?? item.status)}
           </p>
-        </Card>
-      ))}
-    </div>
-  );
-}
-
-function MyExamsPanel() {
-  const [items, setItems] = useState<MyExam[]>([]);
-  const [error, setError] = useState<string>();
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    void getMyExams()
-      .then((result) => { if (!cancelled) setItems(result.data.data); })
-      .catch((err: unknown) => { if (!cancelled) setError(getApiErrorMessage(err)); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, []);
-
-  if (loading) return <Spinner />;
-  if (error) return <EmptyState title="无法加载考试" description={error} />;
-  if (items.length === 0) return <EmptyState title="还没有考试记录" />;
-
-  return (
-    <div className="grid gap-3">
-      {items.map((item) => (
-        <Card key={item.id} className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="font-semibold">{item.exam.title}</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {item.score != null ? `得分 ${item.score}` : "暂无分数"}
-              {item.is_passed == null ? "" : item.is_passed ? " · 已通过" : " · 未通过"}
-            </p>
-          </div>
-          <span className="text-sm">{statusLabel(item.status)}</span>
         </Card>
       ))}
     </div>

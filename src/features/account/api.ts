@@ -4,6 +4,7 @@ import {
   myCourseSchema,
   myExamSchema,
   myFavoriteItemSchema,
+  myHomeworkSchema,
   myTrainingSchema,
   paginatedSchema,
 } from "@/entities/classroom";
@@ -48,10 +49,77 @@ export function getMyClasses(status?: string) {
   });
 }
 
-export function getMyExams(status?: string) {
+export function getMyExams(params?: { status?: string; per_page?: number; page?: number }) {
   return apiClient.get<z.infer<typeof myExamsSchema>>("/api/me/exams", {
-    query: { status, per_page: 20 },
+    query: { status: params?.status, per_page: params?.per_page ?? 15, page: params?.page },
     responseSchema: myExamsSchema,
     retry: 0,
   });
+}
+
+export function getExamDetail(examId: number) {
+  return apiClient.get<z.infer<typeof myExamSchema>>(`/api/me/exams/${examId}`, {
+    responseSchema: myExamSchema,
+    retry: 0,
+  });
+}
+
+export function startExam(examId: number) {
+  return apiClient.post<z.infer<typeof myExamSchema>>(`/api/me/exams/${examId}/start`, {}, {
+    responseSchema: myExamSchema,
+    retry: 0,
+  });
+}
+
+export function saveExamAnswer(
+  examId: number,
+  body: {
+    answers?: Array<{ question_id: number; answer: string[] }>;
+    submit: boolean;
+  },
+) {
+  return apiClient.put<z.infer<typeof myExamSchema>>(
+    `/api/me/exams/${examId}/answer`,
+    body,
+    { responseSchema: myExamSchema, retry: 0 },
+  );
+}
+
+const myHomeworksSchema = paginatedSchema(myHomeworkSchema);
+
+export function getMyHomeworks(params?: { status?: string; per_page?: number; page?: number }) {
+  return apiClient.get<z.infer<typeof myHomeworksSchema>>("/api/me/homeworks", {
+    query: { status: params?.status, per_page: params?.per_page ?? 15, page: params?.page },
+    responseSchema: myHomeworksSchema,
+    retry: 0,
+  });
+}
+
+export function getHomeworkDetail(homeworkId: number) {
+  return apiClient.get<z.infer<typeof myHomeworkSchema>>(`/api/me/homeworks/${homeworkId}`, {
+    responseSchema: myHomeworkSchema,
+    retry: 0,
+  });
+}
+
+export function startHomework(homeworkId: number) {
+  return apiClient.post<z.infer<typeof myHomeworkSchema>>(`/api/me/homeworks/${homeworkId}/start`, {}, {
+    responseSchema: myHomeworkSchema,
+    retry: 0,
+  });
+}
+
+export function saveHomeworkAnswer(
+  homeworkId: number,
+  body: {
+    attachment_urls?: string[];
+    answers?: Array<{ question_id: number; answer: string[] }>;
+    submit: boolean;
+  },
+) {
+  return apiClient.put<z.infer<typeof myHomeworkSchema>>(
+    `/api/me/homeworks/${homeworkId}/answer`,
+    body,
+    { responseSchema: myHomeworkSchema, retry: 0 },
+  );
 }
