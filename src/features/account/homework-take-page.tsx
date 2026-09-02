@@ -150,7 +150,7 @@ export function HomeworkTakeView({ homeworkId }: { homeworkId: number }) {
       }
     })();
     return () => { cancelled = true; };
-  }, [status, homeworkId]);
+  }, [status, homeworkId, toast]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);

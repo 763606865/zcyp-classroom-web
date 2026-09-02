@@ -49,14 +49,14 @@ export function SmsLoginForm({ onSuccess }: { onSuccess?: () => void }) {
   return <form onSubmit={onSubmit} className="grid gap-5" noValidate>
     {formError ? <Alert>{formError}</Alert> : null}
     <FormField id="phone" label="手机号" error={errors.phone?.message}>
-      <Input id="phone" type="tel" inputMode="numeric" autoComplete="tel" placeholder="请输入手机号" aria-invalid={Boolean(errors.phone)} aria-describedby={errors.phone ? "phone-error" : undefined} {...register("phone")} />
+      <Input id="phone" type="tel" inputMode="numeric" autoComplete="tel" placeholder="请输入手机号" className="min-h-11" aria-invalid={Boolean(errors.phone)} aria-describedby={errors.phone ? "phone-error" : undefined} {...register("phone")} />
     </FormField>
     <FormField id="code" label="验证码" error={errors.code?.message}>
       <div className="flex gap-2">
-        <Input id="code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} placeholder="6 位验证码" aria-invalid={Boolean(errors.code)} aria-describedby={errors.code ? "code-error" : undefined} {...register("code")} />
-        <Button type="button" variant="secondary" disabled={countdown.isRunning} onClick={() => void sendCode()} className="shrink-0">{countdown.isRunning ? `${countdown.remaining}s` : "获取验证码"}</Button>
+        <Input id="code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} placeholder="6 位验证码" className="min-h-11" aria-invalid={Boolean(errors.code)} aria-describedby={errors.code ? "code-error" : undefined} {...register("code")} />
+        <Button type="button" variant="secondary" disabled={countdown.isRunning} onClick={() => void sendCode()} className="h-11 shrink-0">{countdown.isRunning ? `${countdown.remaining}s` : "获取验证码"}</Button>
       </div>
     </FormField>
-    <Button type="submit" loading={isSubmitting} className="w-full">登录</Button>
+    <Button type="submit" loading={isSubmitting} className="mt-1 h-11 w-full">登录</Button>
   </form>;
 }

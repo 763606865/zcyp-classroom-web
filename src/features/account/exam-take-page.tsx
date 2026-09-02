@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -122,7 +122,10 @@ export function ExamTakeView({ examId }: { examId: number }) {
   const [now, setNow] = useState(() => Date.now());
   const expiredRef = useRef(false);
   const draftsRef = useRef(drafts);
-  draftsRef.current = drafts;
+
+  useEffect(() => {
+    draftsRef.current = drafts;
+  }, [drafts]);
 
   useEffect(() => {
     if (status === "anonymous") router.replace(`/login?next=/account/exams/${examId}`);
@@ -147,7 +150,6 @@ export function ExamTakeView({ examId }: { examId: number }) {
   }, []);
 
   const questions = useMemo(() => (item ? sortedQuestions(item) : []), [item]);
-  const current = questions[currentIndex];
   const answeredCount = questions.filter((question) => isAnswered(question, drafts)).length;
   const allAnswered = questions.length > 0 && answeredCount === questions.length;
   const canWrite = item ? canWriteExam(item) : false;
@@ -177,7 +179,7 @@ export function ExamTakeView({ examId }: { examId: number }) {
     }
   }
 
-  async function handleExpire() {
+  const handleExpire = useCallback(async () => {
     if (expiredRef.current) return;
     expiredRef.current = true;
     try {
@@ -197,12 +199,12 @@ export function ExamTakeView({ examId }: { examId: number }) {
     } catch (err) {
       toast({ title: "考试已结束", description: getApiErrorMessage(err) });
     }
-  }
+  }, [examId, questions, toast]);
 
   useEffect(() => {
     if (!canWrite || !overdue) return;
     void handleExpire();
-  }, [canWrite, overdue]);
+  }, [canWrite, overdue, handleExpire]);
 
   useEffect(() => {
     if (!canWrite) return;

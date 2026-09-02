@@ -91,7 +91,7 @@ export function ClassroomHomeView() {
   return (
     <div id="top" className="bg-background">
       <section className="bg-primary text-primary-foreground">
-        <div className="mx-auto grid max-w-6xl gap-8 px-6 py-16 lg:grid-cols-2 lg:items-center">
+        <div className="mx-auto grid max-w-7xl gap-8 px-6 py-16 lg:grid-cols-2 lg:items-center">
           <div>
             <p className="text-sm font-medium text-accent">选择{siteName}，提升核心竞争力</p>
             <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">
@@ -108,7 +108,7 @@ export function ClassroomHomeView() {
           <CoverImage src={banner?.cover} alt="" className="min-h-64 w-full rounded-2xl bg-white/10" />
         </div>
         {banners.length > 1 ? (
-          <div className="mx-auto flex max-w-6xl justify-center gap-2 px-6 pb-8">
+          <div className="mx-auto flex max-w-7xl justify-center gap-2 px-6 pb-8">
             {banners.map((item, index) => (
               <button
                 key={item.id}
@@ -123,7 +123,7 @@ export function ClassroomHomeView() {
       </section>
 
       <section id="courses" className="scroll-mt-24 bg-surface py-16">
-        <div className="mx-auto max-w-6xl px-6">
+        <div className="mx-auto max-w-7xl px-6">
           <SectionTitle title="热门课程" subtitle="覆盖计量、检测、体系与数字化方向，可按岗位选课。" />
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {courseCards.map((course) => (
@@ -135,13 +135,13 @@ export function ClassroomHomeView() {
             ))}
           </div>
           <div className="mt-8 text-center">
-            <Link href="/trainings"><Button variant="accent">免费咨询课程</Button></Link>
+            <Link href="/courses"><Button>查看全部课程</Button></Link>
           </div>
         </div>
       </section>
 
       <section id="news" className="bg-primary py-16 text-primary-foreground">
-        <div className="mx-auto max-w-6xl px-6">
+        <div className="mx-auto max-w-7xl px-6">
           <SectionTitle title="资讯中心" subtitle="开班动态、行业要点与岗位能力资讯。" light />
           <div className="grid gap-4 lg:grid-cols-3">
             {(banners.slice(0, 2).length > 0 ? banners.slice(0, 2) : [
@@ -163,14 +163,14 @@ export function ClassroomHomeView() {
                   <li key={item.title}>{item.title}</li>
                 ))}
               </ul>
-              <Link href="/#schedule" className="mt-6 inline-block text-sm underline">查看全部</Link>
+              <Link href="/schedule" className="mt-6 inline-block text-sm underline">查看全部</Link>
             </Card>
           </div>
         </div>
       </section>
 
       <section id="schedule" className="scroll-mt-24 bg-surface py-16">
-        <div className="mx-auto max-w-6xl px-6">
+        <div className="mx-auto max-w-7xl px-6">
           <SectionTitle title="开班计划" subtitle="近期可报名的培训项目，支持线上直播与线下面授。" />
           {loading ? (
             <div className="flex justify-center py-10"><Spinner label="加载开班计划" /></div>
@@ -207,11 +207,14 @@ export function ClassroomHomeView() {
               </table>
             </div>
           )}
+          <div className="mt-6 text-center">
+            <Link href="/schedule"><Button>查看全部开班计划</Button></Link>
+          </div>
         </div>
       </section>
 
       <section id="faculty" className="scroll-mt-24 bg-background py-16">
-        <div className="mx-auto max-w-6xl px-6">
+        <div className="mx-auto max-w-7xl px-6">
           <SectionTitle title="师资力量" subtitle={`${siteName}讲师来自计量检测一线，兼顾标准解读与现场实操。`} />
           <div className="relative">
             <div className="grid gap-4 md:grid-cols-3">
@@ -230,7 +233,7 @@ export function ClassroomHomeView() {
                         <li key={item}>· {item}</li>
                       ))}
                     </ul>
-                    <Link href="/consult?source=faculty" className="mt-6 inline-block w-full"><Button variant="accent" className="w-full">预约试听</Button></Link>
+                    <Link href={`/teachers/${teacher.id}`} className="mt-6 inline-block w-full"><Button variant="accent" className="w-full">查看讲师</Button></Link>
                   </Card>
                 );
               })}
@@ -242,11 +245,14 @@ export function ClassroomHomeView() {
               </div>
             ) : null}
           </div>
+          <div className="mt-8 text-center">
+            <Link href="/teachers"><Button>查看全部师资</Button></Link>
+          </div>
         </div>
       </section>
 
       <section className="bg-primary py-16 text-primary-foreground">
-        <div className="mx-auto grid max-w-6xl gap-10 px-6 lg:grid-cols-2">
+        <div className="mx-auto grid max-w-7xl gap-10 px-6 lg:grid-cols-2">
           <div>
             <h2 className="text-3xl font-semibold">选择{siteName} 提升核心竞争力</h2>
             <p className="mt-3 text-white/80">以岗位能力为目标，把标准、仪器与现场作业串成可落地的培训路径。</p>
@@ -271,7 +277,7 @@ export function ClassroomHomeView() {
       </section>
 
       <section className="bg-surface py-16">
-        <div className="mx-auto max-w-6xl px-6">
+        <div className="mx-auto max-w-7xl px-6">
           <SectionTitle title={`${siteName}战报`} subtitle="学员成果与机构动态，持续更新。" />
           <div className="grid gap-4 md:grid-cols-2">
             <Card className="p-0">
@@ -294,7 +300,7 @@ export function ClassroomHomeView() {
       </section>
 
       <section className="bg-primary py-16 text-primary-foreground">
-        <div className="mx-auto max-w-6xl px-6">
+        <div className="mx-auto max-w-7xl px-6">
           <SectionTitle title="常见问题" subtitle="备考深造与岗位提升路上，这些是学员问得最多的问题。" light />
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {faqs.map((item) => (
@@ -308,7 +314,7 @@ export function ClassroomHomeView() {
       </section>
 
       <section className="bg-surface py-16">
-        <div className="mx-auto max-w-6xl px-6">
+        <div className="mx-auto max-w-7xl px-6">
           <SectionTitle title={`${siteName}校区`} subtitle="一线学习，全国联合。" />
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {campuses.map((campus) => (
@@ -325,7 +331,7 @@ export function ClassroomHomeView() {
       </section>
 
       <section className="bg-background py-16">
-        <div className="mx-auto max-w-6xl px-6">
+        <div className="mx-auto max-w-7xl px-6">
           <SectionTitle title="合作伙伴" subtitle="联合检测机构、院校与企业，共建培训与实训。" />
           <div className="mb-6 flex justify-center gap-6 text-sm">
             <button type="button" className={partnerTab === "companies" ? "font-semibold text-primary" : "text-muted-foreground"} onClick={() => setPartnerTab("companies")}>合作企业</button>

@@ -41,25 +41,6 @@
   --radius-card: var(--radius);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --background: #0d1117;
-    --foreground: #f0f4f8;
-    --surface: #151b23;
-    --muted: #202938;
-    --muted-foreground: #9aa4b2;
-    --border: #303947;
-    --primary: #0f62fe;
-    --primary-hover: #4589ff;
-    --primary-foreground: #ffffff;
-    --accent: #ffa500;
-    --accent-hover: #ffb733;
-    --accent-foreground: #1a1300;
-    --danger: #ef4444;
-    --ring: #4589ff;
-  }
-}
 
 * {
   border-color: var(--border);

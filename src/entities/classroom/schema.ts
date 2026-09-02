@@ -42,8 +42,11 @@ export const courseCardSchema = z.object({
   is_featured: z.boolean().optional(),
   duration_minutes: nullableNumber,
   lesson_count: nullableNumber,
+  favorite_count: z.number().optional(),
+  like_count: z.number().optional(),
+  share_count: z.number().optional(),
   teacher: teacherSchema.nullable().optional(),
-});
+}).passthrough();
 
 export const trainingCardSchema = z.object({
   id: z.number(),
@@ -65,7 +68,29 @@ export const trainingCardSchema = z.object({
   price: z.string(),
   is_featured: z.boolean().optional(),
   category: categorySchema.nullable().optional(),
-});
+}).passthrough();
+
+export const teacherProfileSchema = teacherSchema.extend({
+  bio: nullableString,
+  sort: z.number().optional(),
+  courses: z.array(courseCardSchema).optional(),
+  trainings: z.array(trainingCardSchema).optional(),
+}).passthrough();
+
+export const classScheduleSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  code: nullableString,
+  cover: nullableString,
+  description: nullableString,
+  status: z.string(),
+  student_count: z.number().optional(),
+  max_students: nullableNumber,
+  start_at: nullableString,
+  end_at: nullableString,
+  teacher: teacherSchema.nullable().optional(),
+  training: trainingCardSchema.nullable().optional(),
+}).passthrough();
 
 export const trainingDetailSchema = trainingCardSchema.extend({
   description: nullableString,
@@ -294,6 +319,8 @@ export type CourseCard = z.infer<typeof courseCardSchema>;
 export type TrainingCard = z.infer<typeof trainingCardSchema>;
 export type TrainingDetail = z.infer<typeof trainingDetailSchema>;
 export type ClassroomHome = z.infer<typeof classroomHomeSchema>;
+export type TeacherProfile = z.infer<typeof teacherProfileSchema>;
+export type ClassSchedule = z.infer<typeof classScheduleSchema>;
 export type MyCourse = z.infer<typeof myCourseSchema>;
 export type MyTraining = z.infer<typeof myTrainingSchema>;
 export type MyClass = z.infer<typeof myClassSchema>;

@@ -2,7 +2,23 @@ export const trainingTypeLabels: Record<string, string> = {
   online: "线上",
   offline: "线下",
   mixed: "混合",
+  live: "直播",
 };
+
+export function classScheduleStatusLabel(status: string) {
+  const labels: Record<string, string> = {
+    pending: "待开班",
+    ongoing: "进行中",
+    finished: "已结班",
+    cancelled: "已取消",
+  };
+  return labels[status] ?? status;
+}
+
+export function stripHtml(value?: string | null) {
+  if (!value) return "";
+  return value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
 
 export function formatPrice(isFree: boolean, price: string) {
   if (isFree || Number(price) === 0) return "免费";

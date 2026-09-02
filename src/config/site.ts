@@ -4,9 +4,9 @@ export const siteConfig = {
   nav: [
     { href: "/", label: "首页" },
     { label: "中测易聘", ecosystem: true },
-    { href: "/#courses", label: "热门课程" },
-    { href: "/#schedule", label: "开班计划" },
-    { href: "/#faculty", label: "师资力量" },
+    { href: "/courses", label: "热门课程" },
+    { href: "/schedule", label: "开班计划" },
+    { href: "/teachers", label: "师资力量" },
     { href: "/consult", label: "课程咨询" },
     { href: "/trainings", label: "培训项目" },
     { href: "/account", label: "个人中心" },
