@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type MouseEvent } from "react";
+import { useState, type MouseEvent, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { publicEnv } from "@/config/env";
 import { getApiErrorMessage } from "@/lib/forms";
@@ -13,10 +13,12 @@ const TICKET_QUERY = "zc_center_auth_ticket";
 // 中测易聘门户导航：登录后签发中台生态票据并附在跳转地址上完成登录同步；未登录先引导登录。
 export function EcosystemNavLink({
   label,
+  icon,
   className,
   onNavigate,
 }: {
   label: string;
+  icon?: ReactNode;
   className?: string;
   onNavigate?: () => void;
 }) {
@@ -60,7 +62,10 @@ export function EcosystemNavLink({
       className={className}
       onClick={(event) => void handleClick(event)}
     >
-      {label}
+      <span className="inline-flex items-center gap-1">
+        {icon}
+        {label}
+      </span>
     </a>
   );
 }

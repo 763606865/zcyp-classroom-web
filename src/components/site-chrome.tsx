@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, MessageSquare } from "lucide-react";
@@ -12,8 +13,10 @@ import { AuthEntry } from "@/features/auth/auth-entry";
 import { EcosystemNavLink } from "@/features/auth/ecosystem-nav-link";
 import { useSystemSettings } from "@/features/system-settings/system-settings-provider";
 
-const navLinkClass = "text-sm text-muted-foreground transition hover:text-primary";
-const navActiveClass = "font-medium text-primary";
+const navLinkClass = "relative text-base font-normal text-[#595959] transition hover:text-[#222222]";
+// 高亮菜单：文字下方 6px 处一条 2px 高、#0F62FE 的等宽横线。
+const navActiveClass =
+  "font-medium text-[#222222] after:absolute after:left-0 after:top-[calc(100%+6px)] after:h-[2px] after:w-full after:bg-[#0F62FE] after:content-['']";
 
 function isNavActive(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
@@ -22,13 +25,12 @@ function isNavActive(pathname: string, href: string) {
 
 export function SiteHeader() {
   const pathname = usePathname();
+  const { settings } = useSystemSettings();
+  const [menuOpen, setMenuOpen] = useState(false);
   if (pathname === "/login") return null;
 
-  const { settings, siteName } = useSystemSettings();
-  const [menuOpen, setMenuOpen] = useState(false);
-
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-surface/90 backdrop-blur">
+    <header className="sticky top-0 z-50 bg-[#f5f9fd]">
       {settings?.maintenance_message ? (
         <p className="bg-muted px-6 py-2 text-center text-sm">{settings.maintenance_message}</p>
       ) : null}
@@ -96,7 +98,8 @@ function MainNavLinks({
           <EcosystemNavLink
             key={item.label}
             label={item.label}
-            className={cn(navLinkClass, stacked && "block")}
+            icon={<Image src="/images/home/yp-logo.png" width={16} height={16} alt="" />}
+            className={cn("text-[14px] font-normal text-[#000000] flex items-center", stacked && "block")}
             onNavigate={onNavigate}
           />
         ) : (
@@ -116,17 +119,40 @@ function MainNavLinks({
 
 export function SiteFooter() {
   const pathname = usePathname();
-  if (pathname === "/login") return null;
-
   const { settings, siteName } = useSystemSettings();
+  if (pathname === "/login") return null;
+  // 热线与备案号优先取后端配置，为空时回退设计稿文案。
+  const phone = settings?.customer_service_phone || "0791-86375557";
+  const icp = settings?.icp_number || "赣ICP备18006578号-1";
+
   return (
-    <footer className="mt-auto bg-[#0b1f44] text-white">
-      <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-4 px-6 py-6 text-sm">
-        <p className="font-semibold">{siteName}</p>
-        <p className="text-white/70">计量检测岗位培训服务，课程内容以后台发布为准。</p>
-        <div className="text-white/70">
-          {settings?.customer_service_phone ? <p>热线 {settings.customer_service_phone}</p> : null}
-          {settings?.icp_number ? <p>{settings.icp_number}</p> : null}
+    <footer className="mt-auto bg-[#0B1E49] text-white">
+      <div className="px-6 pb-[35px] pt-[55px] lg:px-[120px]">
+        <div className="flex flex-wrap items-start justify-between gap-x-16 gap-y-10">
+          <div className="max-w-[420px]">
+            <Image src="/images/home/footer-logo.png" width={122} height={32} alt={siteName} />
+            <p className="mt-6 text-sm leading-6 text-[#A8B6D3]">
+              计量检测岗位培训 · 公开课、线下班与混合式培训一体，
+              <br />
+              从报名、学习到考试形成完整闭环。
+            </p>
+            <p className="mt-6 text-sm text-[#A8B6D3]">咨询热线： {phone}</p>
+          </div>
+          <nav className="flex flex-wrap gap-x-12 gap-y-6 pt-1" aria-label="页脚导航">
+            {siteConfig.footerNav.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="text-sm font-semibold text-white transition hover:text-white/80"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
+        <div className="mt-9 flex flex-wrap items-center justify-between gap-2 border-t border-white/12 pt-6 text-[13px] text-[#7C8DB5]">
+          <p>{new Date().getFullYear()} {siteName} · 计量检测岗位培训 版权所有</p>
+          <p>{icp}</p>
         </div>
       </div>
     </footer>

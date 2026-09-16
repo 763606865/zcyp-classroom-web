@@ -11,4 +11,10 @@ export const siteConfig = {
     { href: "/trainings", label: "培训项目" },
     { href: "/account", label: "个人中心" },
   ],
+  footerNav: [
+    { href: "/courses", label: "热门课程" },
+    { href: "/schedule", label: "开班计划" },
+    { href: "/consult", label: "课程咨询" },
+    { href: "/trainings", label: "培训项目" },
+  ],
 } as const;
