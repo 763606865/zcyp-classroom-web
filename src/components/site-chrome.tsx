@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu } from "lucide-react";
+import { Menu, MessageSquare } from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { cn } from "@/lib/utils/cn";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,8 @@ function isNavActive(pathname: string, href: string) {
 
 export function SiteHeader() {
   const pathname = usePathname();
+  if (pathname === "/login") return null;
+
   const { settings, siteName } = useSystemSettings();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -37,14 +39,21 @@ export function SiteHeader() {
             // eslint-disable-next-line @next/next/no-img-element
             <img src={settings.logo} alt="" className="h-8 w-auto max-w-32 object-contain" />
           ) : null}
-          <span className="truncate">{siteName}</span>
+          {/* <span className="truncate">{siteName}</span> */}
         </Link>
         <nav className="hidden items-center justify-center gap-6 lg:flex" aria-label="主导航">
           <MainNavLinks pathname={pathname} />
         </nav>
         <div className="flex shrink-0 items-center justify-end gap-3">
           <Link href="/consult?source=header" className="hidden sm:inline">
-            <Button variant="accent">立即咨询</Button>
+            <button
+              type="button"
+              className="inline-flex items-center gap-[2px] rounded bg-[#0F62FE] font-medium text-white transition hover:bg-[#0F62FE]/90"
+              style={{ height: 32, padding: "8px 16px", fontSize: 14, borderRadius: 4 }}
+            >
+              <MessageSquare style={{ width: 16, height: 16 }} />
+              <span>立即咨询</span>
+            </button>
           </Link>
           <AuthEntry />
           <Button
@@ -106,6 +115,9 @@ function MainNavLinks({
 }
 
 export function SiteFooter() {
+  const pathname = usePathname();
+  if (pathname === "/login") return null;
+
   const { settings, siteName } = useSystemSettings();
   return (
     <footer className="mt-auto bg-[#0b1f44] text-white">
