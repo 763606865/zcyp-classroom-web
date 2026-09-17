@@ -2,7 +2,7 @@ export const trainingTypeLabels: Record<string, string> = {
   online: "线上",
   offline: "线下",
   mixed: "混合",
-  live: "直播",
+  live: "线上直播",
 };
 
 export function classScheduleStatusLabel(status: string) {
