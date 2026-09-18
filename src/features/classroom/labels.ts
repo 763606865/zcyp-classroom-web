@@ -5,6 +5,14 @@ export const trainingTypeLabels: Record<string, string> = {
   live: "线上直播",
 };
 
+/** 授课方式文字色值映射 */
+export const trainingTypeColors: Record<string, string> = {
+  online: "#F16767",
+  offline: "green",
+  mixed: "#0F62FE",
+  live: "#0F62FE",
+};
+
 export function classScheduleStatusLabel(status: string) {
   const labels: Record<string, string> = {
     pending: "待开班",
@@ -108,4 +116,11 @@ export function formatAmount(amount?: string | null) {
   if (amount == null || amount === "") return "—";
   if (Number(amount) === 0) return "¥0.00";
   return `¥${amount}`;
+}
+
+/** 根据 like_count 计算推荐图标数量（0-10→1, 10-20→2, 20-30→3, 30-40→4, 40+→5，最多5个） */
+export function getLikeIconCount(likeCount?: number | null): number {
+  if (!likeCount || likeCount <= 0) return 0;
+  const count = Math.ceil(likeCount / 10);
+  return Math.min(count, 5);
 }

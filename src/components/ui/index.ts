@@ -8,6 +8,7 @@ export { EmptyState } from "./empty-state";
 export { FormField } from "./form-field";
 export { Input } from "./input";
 export { Label } from "./label";
+export { Pagination } from "./pagination";
 export { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./select";
 export { Spinner } from "./spinner";
 export { Textarea } from "./textarea";
