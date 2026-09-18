@@ -175,17 +175,17 @@ function BannerSection() {
             {bannerStats.map((stat) => (
               <div
                 key={stat.label}
-                className="flex items-center gap-3 rounded-lg bg-white px-4 py-3"
-                style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
+                className="flex items-center gap-3 rounded-lg bg-white"
+                style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.06)", padding: "10px 20px 14px 27px" }}
               >
-                <Image src={stat.icon} alt="" width={56} height={56} className="shrink-0" />
-                <div>
-                  <p className="text-[20px] font-bold text-[#0F62FE]">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[24px] font-bold text-[#0F62FE]">
                     {stat.value}
-                    <span className="ml-1 text-[12px] font-normal text-[#999999]">{stat.unit}</span>
+                    <span className="ml-1 text-[14px] font-normal text-[#222222]">{stat.unit}</span>
                   </p>
-                  <p className="text-[12px] text-[#999999]">{stat.label}</p>
+                  <p className="text-[14px] text-[#222222]/60">{stat.label}</p>
                 </div>
+                <Image src={stat.icon} alt="" width={56} height={56} className="shrink-0" />
               </div>
             ))}
           </div>
