@@ -81,16 +81,29 @@ export function ConsultForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="grid gap-5" noValidate>
+    <form
+      onSubmit={onSubmit}
+      className="flex flex-col gap-5 bg-white"
+      noValidate
+      style={{
+        width: 656,
+        maxHeight: 499,
+        padding: "34px 37px 25px",
+        borderRadius: 12,
+        boxShadow: "1px 5px 12px 0px rgba(0,0,0,0.1)",
+      }}
+    >
       {formError ? <Alert>{formError}</Alert> : null}
-      <FormField id="name" label="姓名" error={errors.name?.message}>
-        <Input id="name" autoComplete="name" placeholder="请输入姓名" {...register("name")} />
-      </FormField>
-      <FormField id="phone" label="手机号" error={errors.phone?.message}>
-        <Input id="phone" type="tel" inputMode="numeric" autoComplete="tel" placeholder="请输入手机号" {...register("phone")} />
-      </FormField>
+      <div className="grid grid-cols-2 gap-5">
+        <FormField id="name" label="姓名" error={errors.name?.message}>
+          <Input id="name" autoComplete="name" placeholder="请输入真实姓名" {...register("name")} />
+        </FormField>
+        <FormField id="phone" label="手机号" error={errors.phone?.message}>
+          <Input id="phone" type="tel" inputMode="numeric" autoComplete="tel" placeholder="请输入手机号" {...register("phone")} />
+        </FormField>
+      </div>
       <FormField id="city" label="所在城市" error={errors.city?.message}>
-        <Input id="city" autoComplete="address-level2" placeholder="例如：杭州" {...register("city")} />
+        <Input id="city" autoComplete="address-level2" placeholder="请选择" {...register("city")} />
       </FormField>
       <FormField id="courseKey" label="意向课程" error={errors.courseKey?.message}>
         <Controller
@@ -98,7 +111,7 @@ export function ConsultForm() {
           control={control}
           render={({ field }) => (
             <Select value={field.value} onValueChange={field.onChange}>
-              <SelectTrigger id="courseKey"><SelectValue placeholder="请选择课程" /></SelectTrigger>
+              <SelectTrigger id="courseKey"><SelectValue placeholder="请选择" /></SelectTrigger>
               <SelectContent>
                 {courses.map((course) => (
                   <SelectItem key={course.id} value={String(course.id)}>{course.title}</SelectItem>
@@ -109,10 +122,10 @@ export function ConsultForm() {
           )}
         />
       </FormField>
-      <FormField id="intended_course" label="课程名称（未选到列表课程时填写）" error={errors.intended_course?.message}>
-        <Input id="intended_course" placeholder="请填写意向课程" {...register("intended_course")} />
+      <FormField id="intended_course" label="课程名称(未选到列表课程是填写)" error={errors.intended_course?.message}>
+        <Input id="intended_course" placeholder="请输入课程名称" {...register("intended_course")} />
       </FormField>
-      <Button type="submit" variant="accent" className="w-full" loading={isSubmitting} disabled={countdown.isRunning}>
+      <Button type="submit" variant="accent" className="w-full rounded-[20px] bg-[#0F62FE] text-white" loading={isSubmitting} disabled={countdown.isRunning}>
         {countdown.isRunning ? `${countdown.remaining}s 后可再提交` : "提交咨询"}
       </Button>
     </form>
