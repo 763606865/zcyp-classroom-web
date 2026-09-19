@@ -175,66 +175,90 @@ function HotCoursesSection({ courses }: { courses: ClassroomHome["featured_cours
   const courseCards = courses.length > 0 ? courses.slice(0, 8) : popularCourseFallbacks.slice(0, 8);
 
   return (
-    <section className="bg-white py-[71px]" style={{ paddingBottom: 79 }}>
-      <div className="mx-auto max-w-[1200px]">
-        <SectionHeader
-          title="热门课程"
-          subtitle="覆盖计量、检测、体系与数字化方向，可按岗位选课。"
-          linkHref="/courses"
-          linkText="查看更多"
-        />
+		<section className="bg-white py-[71px]" style={{ paddingBottom: 79 }}>
+			<div className="mx-auto max-w-[1200px]">
+				<SectionHeader
+					title="热门课程"
+					subtitle="覆盖计量、检测、体系与数字化方向，可按岗位选课。"
+					linkHref="/courses"
+					linkText="查看更多"
+				/>
 
-        <div className="mt-[29px] grid grid-cols-1 gap-x-[18px] gap-y-[24px] sm:grid-cols-2 lg:grid-cols-4">
-          {courses.length > 0
-            ? courses.slice(0, 8).map((course) => (
-                <Link key={course.id} href={`/courses/${course.slug}`} className="group">
-                  <div className="overflow-hidden rounded-t-[8px] bg-muted">
-                    {course.cover ? (
-                      <CoverImage src={course.cover} alt={course.title} className="h-[161px] w-full" />
-                    ) : (
-                      <div className="flex h-[161px] w-full items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10">
-                        <span className="text-4xl font-bold text-primary/30">测</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="rounded-b-lg bg-surface p-[12px] pr-[15px] pb-[11px] pl-[15px]">
-                    <h3 className="line-clamp-2 text-[16px] font-medium text-[#222222] group-hover:text-primary">
-                      {course.title}
-                    </h3>
-                    <p className="mt-[10px] text-[14px] text-[#555555]">{course.teacher?.name ?? ""}</p>
-                    <div className="mt-[4px] h-[1px] bg-black/10" />
-                    <div className="mt-[11px] flex items-center justify-between">
-                      <span className="text-[14px] text-black/60">已有{Number(course.enroll_count ?? 0)}人报名</span>
-                      <span className={`text-[16px] font-semibold ${course.is_free ? "text-[#FEA500]" : "text-[#0F62FE]"}`}>
-                        {formatPrice(course.is_free, course.price)}
-                      </span>
-                    </div>
-                  </div>
-                </Link>
-              ))
-            : popularCourseFallbacks.slice(0, 8).map((course, idx) => (
-                <Link key={idx} href="/courses" className="group">
-                  <div className="overflow-hidden rounded-t-[8px] bg-muted">
-                    <div className="flex h-[161px] w-full items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10">
-                      <span className="text-4xl font-bold text-primary/30">测</span>
-                    </div>
-                  </div>
-                  <div className="rounded-b-lg bg-surface p-[12px] pr-[15px] pb-[11px] pl-[15px]">
-                    <h3 className="line-clamp-2 text-[16px] font-medium text-[#222222] group-hover:text-primary">
-                      {course.title}
-                    </h3>
-                    <p className="mt-[10px] text-[14px] text-[#555555]">{course.subtitle}</p>
-                    <div className="mt-[4px] h-[1px] bg-black/10" />
-                    <div className="mt-[11px] flex items-center justify-between">
-                      <span className="text-[14px] text-black/60">已有232345人报名</span>
-                      <span className="text-[16px] font-semibold text-[#0F62FE]">¥2345</span>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-        </div>
-      </div>
-    </section>
+				<div className="mt-[29px] grid grid-cols-1 gap-x-[18px] gap-y-[24px] sm:grid-cols-2 lg:grid-cols-4">
+					{courses.length > 0
+						? courses.slice(0, 8).map(course => (
+								<Link
+									key={course.id}
+									href={`/courses/${course.slug}`}
+									className="group border border-[#ECECEC] rounded-[8px]"
+								>
+									<div className="overflow-hidden rounded-t-[8px] bg-muted">
+										{course.cover ? (
+											<CoverImage
+												src={course.cover}
+												alt={course.title}
+												className="h-[161px] w-full"
+											/>
+										) : (
+											<div className="flex h-[161px] w-full items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10">
+												<span className="text-4xl font-bold text-primary/30">
+													测
+												</span>
+											</div>
+										)}
+									</div>
+									<div className="rounded-b-lg bg-surface p-[12px] pr-[15px] pb-[11px] pl-[15px]">
+										<h3 className="line-clamp-2 text-[16px] font-medium text-[#222222] group-hover:text-primary">
+											{course.title}
+										</h3>
+										<p className="mt-[10px] text-[14px] text-[#555555]">
+											{course.teacher?.name ?? ''}
+										</p>
+										<div className="mt-[4px] h-[1px] bg-black/10" />
+										<div className="mt-[11px] flex items-center justify-between">
+											<span className="text-[14px] text-black/60">
+												已有{Number(course.enroll_count ?? 0)}人报名
+											</span>
+											<span
+												className={`text-[16px] font-semibold ${course.is_free ? 'text-[#FEA500]' : 'text-[#0F62FE]'}`}
+											>
+												{formatPrice(course.is_free, course.price)}
+											</span>
+										</div>
+									</div>
+								</Link>
+							))
+						: popularCourseFallbacks.slice(0, 8).map((course, idx) => (
+								<Link key={idx} href="/courses" className="group">
+									<div className="overflow-hidden rounded-t-[8px] bg-muted">
+										<div className="flex h-[161px] w-full items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10">
+											<span className="text-4xl font-bold text-primary/30">
+												测
+											</span>
+										</div>
+									</div>
+									<div className="rounded-b-lg bg-surface p-[12px] pr-[15px] pb-[11px] pl-[15px]">
+										<h3 className="line-clamp-2 text-[16px] font-medium text-[#222222] group-hover:text-primary">
+											{course.title}
+										</h3>
+										<p className="mt-[10px] text-[14px] text-[#555555]">
+											{course.subtitle}
+										</p>
+										<div className="mt-[4px] h-[1px] bg-black/10" />
+										<div className="mt-[11px] flex items-center justify-between">
+											<span className="text-[14px] text-black/60">
+												已有232345人报名
+											</span>
+											<span className="text-[16px] font-semibold text-[#0F62FE]">
+												¥2345
+											</span>
+										</div>
+									</div>
+								</Link>
+							))}
+				</div>
+			</div>
+		</section>
   );
 }
 
