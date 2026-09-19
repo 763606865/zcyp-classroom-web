@@ -260,7 +260,7 @@ function EditorRecommendSection({ courses }: { courses: CourseCard[] }) {
 							{/* Bottom: button + price */}
 							<div className="mt-[14px] flex items-center justify-between">
 								<Link
-									href={`/consult?source=hot-course&course=${activeCourse.id}`}
+									href={`/courses/${activeCourse.slug}`}
 									className="inline-flex items-center gap-1.5 rounded"
 									style={{
 										padding: '6px 14px',
@@ -275,7 +275,7 @@ function EditorRecommendSection({ courses }: { courses: CourseCard[] }) {
 										width={16}
 										height={16}
 									/>
-									咨询课程
+									查看课程
 								</Link>
 								<span style={{ fontSize: 16, color: '#0F62FE', fontWeight: 600 }}>
 									{formatPrice(activeCourse.is_free, activeCourse.price)}
@@ -513,7 +513,10 @@ function CourseListItem({ course }: { course: CourseCard }) {
 	const typeLabel = trainingTypeLabels[course.type] ?? course.type;
 
 	return (
-		<div className="overflow-hidden rounded-lg border border-[#ECECEC] bg-white">
+		<Link
+			href={`/courses/${course.slug}`}
+			className="block overflow-hidden rounded-lg border border-[#ECECEC] bg-white"
+		>
 			{/* Image */}
 			<div className="relative w-full" style={{ paddingBottom: '56.29%' /* 161/286 */ }}>
 				<CoverImage
@@ -553,8 +556,7 @@ function CourseListItem({ course }: { course: CourseCard }) {
 				/>
 				{/* Button + Price */}
 				<div className="mt-[11px] flex items-center justify-between">
-					<Link
-						href={`/consult?source=hot-course&course=${course.id}`}
+					<span
 						className="inline-flex items-center rounded"
 						style={{
 							padding: '2px 7px',
@@ -565,13 +567,13 @@ function CourseListItem({ course }: { course: CourseCard }) {
 						}}
 					>
 						咨询课程
-					</Link>
+					</span>
 					<span style={{ fontSize: 16, color: '#0F62FE', fontWeight: 600 }}>
 						{formatPrice(course.is_free, course.price)}
 					</span>
 				</div>
 			</div>
-		</div>
+		</Link>
 	);
 }
 
