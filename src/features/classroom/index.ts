@@ -1,5 +1,5 @@
 export { ClassroomHomeView } from "./home-page";
-export { TrainingListView } from "./training-list";
+export { TrainingListView, TrainingListHeader, TrainingListContent } from "./training-list";
 export { TrainingDetailView } from "./training-detail";
 export { HotCoursesView } from "./hot-courses";
 export { ClassSchedulesView } from "./class-schedules";

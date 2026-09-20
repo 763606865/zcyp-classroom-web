@@ -7,9 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function TrainingsPage() {
-  return (
-    <PageShell>
-      <TrainingListView />
-    </PageShell>
-  );
+  return <TrainingListView />;
 }

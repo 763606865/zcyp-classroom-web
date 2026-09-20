@@ -26,6 +26,7 @@ export interface TrainingListQuery {
   category?: string;
   featured?: boolean;
   per_page?: number;
+  page?: number;
 }
 
 export interface HotCourseQuery {
@@ -63,6 +64,7 @@ export function getTrainings(query: TrainingListQuery = {}) {
       category: query.category,
       featured: query.featured,
       per_page: query.per_page ?? 12,
+      page: query.page ?? 1,
     },
     responseSchema: trainingListSchema,
   });

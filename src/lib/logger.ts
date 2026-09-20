@@ -68,7 +68,11 @@ function write(level: LogLevel, message: string, context?: LogContext): void {
   });
 
   const method = level === "debug" ? "debug" : level;
-  console[method](JSON.stringify(entry));
+  try {
+    console[method](JSON.stringify(entry));
+  } catch {
+    console[method](message, context);
+  }
 }
 
 export const logger = {
