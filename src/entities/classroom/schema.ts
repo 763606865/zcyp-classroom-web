@@ -42,9 +42,9 @@ export const courseCardSchema = z.object({
   is_featured: z.boolean().optional(),
   duration_minutes: nullableNumber,
   lesson_count: nullableNumber,
-  favorite_count: z.number().optional(),
-  like_count: z.number().optional(),
-  share_count: z.number().optional(),
+  favorite_count: nullableNumber,
+  like_count: nullableNumber,
+  share_count: nullableNumber,
   teacher: teacherSchema.nullable().optional(),
 }).passthrough();
 
@@ -92,22 +92,14 @@ export const classScheduleSchema = z.object({
   training: trainingCardSchema.nullable().optional(),
 }).passthrough();
 
-export const trainingDetailSchema = trainingCardSchema.extend({
-  description: nullableString,
-  view_count: z.number().optional(),
-  enrolled: z.boolean().optional(),
-  teachers: z.array(teacherSchema).optional(),
-  courses: z.array(courseCardSchema).optional(),
-});
-
 export const liveSessionSchema = z.object({
   id: z.number(),
   title: z.string(),
-  status: z.string(),
+  status: nullableString,
   scheduled_start_at: nullableString,
   scheduled_end_at: nullableString,
   has_playback: z.boolean().optional(),
-});
+}).passthrough();
 
 export const courseLessonSchema = z.object({
   id: z.number(),
@@ -118,7 +110,7 @@ export const courseLessonSchema = z.object({
   is_free_preview: z.boolean().optional(),
   sort: z.number().optional(),
   live_sessions: z.array(liveSessionSchema).optional(),
-});
+}).passthrough();
 
 export const courseChapterSchema = z.object({
   id: z.number(),
@@ -126,7 +118,7 @@ export const courseChapterSchema = z.object({
   summary: nullableString,
   sort: z.number().optional(),
   lessons: z.array(courseLessonSchema).optional(),
-});
+}).passthrough();
 
 export const courseDetailSchema = courseCardSchema.extend({
   description: nullableString,
@@ -138,7 +130,21 @@ export const courseDetailSchema = courseCardSchema.extend({
   category: categorySchema.nullable().optional(),
   chapters: z.array(courseChapterSchema).optional(),
   ungrouped_lessons: z.array(courseLessonSchema).optional(),
-});
+}).passthrough();
+
+export const trainingCourseSchema = courseCardSchema.extend({
+  teacher: teacherSchema.nullable().optional(),
+  chapters: z.array(courseChapterSchema).optional(),
+  ungrouped_lessons: z.array(courseLessonSchema).optional(),
+}).passthrough();
+
+export const trainingDetailSchema = trainingCardSchema.extend({
+  description: nullableString,
+  view_count: z.number().optional(),
+  enrolled: z.boolean().optional(),
+  teachers: z.array(teacherSchema).optional(),
+  courses: z.array(trainingCourseSchema).optional(),
+}).passthrough();
 
 export const classroomHomeSchema = z.object({
   banners: z.array(bannerSchema),
@@ -357,6 +363,7 @@ export type Teacher = z.infer<typeof teacherSchema>;
 export type Banner = z.infer<typeof bannerSchema>;
 export type CourseCard = z.infer<typeof courseCardSchema>;
 export type TrainingCard = z.infer<typeof trainingCardSchema>;
+export type TrainingCourse = z.infer<typeof trainingCourseSchema>;
 export type TrainingDetail = z.infer<typeof trainingDetailSchema>;
 export type ClassroomHome = z.infer<typeof classroomHomeSchema>;
 export type TeacherProfile = z.infer<typeof teacherProfileSchema>;

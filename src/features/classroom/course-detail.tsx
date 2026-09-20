@@ -11,16 +11,30 @@ import { getCourseDetail, getHotCourses } from './api';
 import { formatPrice, getLikeIconCount, trainingTypeColors, trainingTypeLabels } from './labels';
 
 /* ─── Helpers ─── */
-function formatDuration(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${s.toString().padStart(2, '0')}`;
-}
-
 function formatTotalDuration(minutes: number): string {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:00`;
+}
+
+function getLessonIcon(lesson: { type?: string; live_sessions?: { has_playback?: boolean }[] }): string {
+  const hasLive = lesson.live_sessions && lesson.live_sessions.length > 0;
+  if (hasLive) return '/images/course/live-icon.png';
+  return '/images/course/video-icon.png';
+}
+
+function getLessonStatus(lesson: { live_sessions?: { status?: string | null; has_playback?: boolean }[] }): { text: string; color: string } {
+  if (!lesson.live_sessions || lesson.live_sessions.length === 0) {
+    return { text: '', color: '#999' };
+  }
+  const session = lesson.live_sessions[0];
+  if (session.status === 'finished' && session.has_playback) {
+    return { text: '查看回放', color: '#0F62FE' };
+  }
+  if (session.status === 'live') {
+    return { text: '直播中', color: '#F16767' };
+  }
+  return { text: '', color: '#999' };
 }
 
 /* ─── Static data (FAQ & QR code not provided by API) ─── */
@@ -48,20 +62,6 @@ function LikeIcon({ className }: { className?: string }) {
   );
 }
 
-/* ─── Video Icon ─── */
-function VideoIcon() {
-  return (
-    <img
-      src="/images/course/video-icon.png"
-      alt=""
-      width={16}
-      height={16}
-      className="flex-shrink-0"
-    />
-  );
-}
-
-/* ─── Refresh Icon ─── */
 function RefreshIcon() {
   return (
     <img
@@ -115,18 +115,19 @@ function CourseDetailHeader({ course }: { course: CourseDetail }) {
 
             {/* Summary */}
             <div
-              className="mt-3"
+              className="mt-3 overflow-hidden"
               style={{
                 backgroundColor: '#f4f5f9',
-                padding: 14,
+                padding: '14px 14px 0',
                 borderRadius: 4,
+                height: 70,
               }}
             >
               <p
-                className="line-clamp-3"
+                className="line-clamp-2"
                 style={{ fontSize: 14, color: '#999', lineHeight: '22px' }}
               >
-                {course.summary}
+                {course.summary || '暂无简介'}
               </p>
             </div>
 
@@ -201,13 +202,6 @@ function CourseIntroContent({ course }: { course: CourseDetail }) {
           dangerouslySetInnerHTML={{ __html: course.description }}
         />
       ) : null}
-      <div className="mt-6 w-full overflow-hidden rounded-lg">
-        <CoverImage
-          src={course.cover}
-          alt={course.title}
-          className="h-auto w-full"
-        />
-      </div>
     </div>
   );
 }
@@ -216,15 +210,16 @@ function CourseIntroContent({ course }: { course: CourseDetail }) {
    Course Chapters Tab Content
    ═══════════════════════════════════════════ */
 function LessonRow({
-  chapterIndex,
   lessonIndex,
   lesson,
 }: {
-  chapterIndex: number;
+  chapterIndex?: number;
   lessonIndex: number;
   lesson: CourseLesson;
 }) {
-  const number = `${chapterIndex}.${lessonIndex}`;
+  const iconSrc = getLessonIcon(lesson);
+  const status = getLessonStatus(lesson);
+
   return (
     <div
       className="flex items-center justify-between rounded"
@@ -234,29 +229,76 @@ function LessonRow({
       }}
     >
       <div className="flex items-center gap-3 min-w-0 flex-1">
-        <span className="flex-shrink-0 font-medium" style={{ fontSize: 14, color: '#222', minWidth: 28 }}>
-          {number}
+        <span
+          className="flex-shrink-0 font-medium"
+          style={{ fontSize: 14, color: '#222', minWidth: 42 }}
+        >
+          第{lessonIndex}节
         </span>
+        <img
+          src={iconSrc}
+          alt=""
+          width={16}
+          height={16}
+          className="flex-shrink-0"
+        />
         <span
           className="truncate"
           style={{ fontSize: 14, color: '#222' }}
         >
           {lesson.title}
         </span>
-        <VideoIcon />
-        <span style={{ fontSize: 14, color: '#999' }}>
-          {formatDuration(lesson.duration_seconds ?? 0)}
-        </span>
       </div>
-      <span
-        className="flex-shrink-0"
-        style={{
-          fontSize: 14,
-          color: lesson.is_free_preview ? '#FEA500' : '#999',
-        }}
+      {status.text ? (
+        <span
+          className="flex-shrink-0"
+          style={{ fontSize: 14, color: status.color }}
+        >
+          {status.text}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+function ChapterAccordion({
+  chapter,
+}: {
+  chapter: CourseChapter;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const lessons = chapter.lessons ?? [];
+
+  return (
+    <div className="border-b border-[#eee]">
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="flex w-full items-center justify-between rounded px-4 py-3 text-left transition-colors hover:bg-[#f6f8fc]"
       >
-        {lesson.is_free_preview ? '免费试听' : '需要购买'}
-      </span>
+        <div className="flex items-center gap-3">
+          <span className="font-medium" style={{ fontSize: 14, color: '#222' }}>
+            {chapter.title}
+          </span>
+        </div>
+        <svg
+          width={16}
+          height={16}
+          viewBox="0 0 16 16"
+          fill="none"
+          className="flex-shrink-0 transition-transform"
+          style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
+        >
+          <path d="M4 6L8 10L12 6" stroke="#999" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      {expanded && lessons.length > 0 ? (
+        <div className="flex flex-col gap-2 px-4 pb-3 pt-1">
+          {lessons.map((lesson, li) => (
+            <LessonRow key={lesson.id} lessonIndex={li + 1} lesson={lesson} />
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -269,26 +311,16 @@ function CourseChaptersContent({
   ungroupedLessons: CourseLesson[];
 }) {
   return (
-    <div className="flex flex-col gap-2">
-      {chapters.map((chapter, ci) =>
-        (chapter.lessons ?? []).map((lesson, li) => (
-          <LessonRow
-            key={lesson.id}
-            chapterIndex={ci + 1}
-            lessonIndex={li + 1}
-            lesson={lesson}
-          />
-        )),
-      )}
+    <div>
+      {chapters.map((chapter) => (
+        <ChapterAccordion key={chapter.id} chapter={chapter} />
+      ))}
       {ungroupedLessons.length > 0 ? (
-        ungroupedLessons.map((lesson, li) => (
-          <LessonRow
-            key={lesson.id}
-            chapterIndex={chapters.length + 1}
-            lessonIndex={li + 1}
-            lesson={lesson}
-          />
-        ))
+        <div className="flex flex-col gap-2 pt-2">
+          {ungroupedLessons.map((lesson, li) => (
+            <LessonRow key={lesson.id} lessonIndex={li + 1} lesson={lesson} />
+          ))}
+        </div>
       ) : null}
     </div>
   );
@@ -626,7 +658,7 @@ function RecommendSection() {
 /* ═══════════════════════════════════════════
    Sidebar (Right Column)
    ═══════════════════════════════════════════ */
-function CourseSidebar() {
+export function DetailSidebar() {
   return (
     <div className="flex flex-col gap-4">
       <QrCodeSection />
@@ -653,7 +685,7 @@ function CourseMainContent({ course }: { course: CourseDetail }) {
           </div>
           {/* Right: Sidebar */}
           <div className="w-full lg:w-[304px] lg:flex-shrink-0">
-            <CourseSidebar />
+            <DetailSidebar />
           </div>
         </div>
       </div>
