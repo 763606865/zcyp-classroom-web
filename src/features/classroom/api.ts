@@ -3,6 +3,7 @@ import {
   classScheduleSchema,
   classroomHomeSchema,
   courseCardSchema,
+  courseDetailSchema,
   paginatedSchema,
   teacherProfileSchema,
   trainingCardSchema,
@@ -113,6 +114,13 @@ export function getTeachers(query: TeacherListQuery = {}) {
 export function getTeacher(id: number) {
   return apiClient.get<z.infer<typeof teacherProfileSchema>>(`/api/classroom/teachers/${id}`, {
     responseSchema: teacherProfileSchema,
+    retry: 0,
+  });
+}
+
+export function getCourseDetail(id: number) {
+  return apiClient.get<z.infer<typeof courseDetailSchema>>(`/api/classroom/courses/${id}`, {
+    responseSchema: courseDetailSchema,
     retry: 0,
   });
 }

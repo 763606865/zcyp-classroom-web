@@ -100,6 +100,46 @@ export const trainingDetailSchema = trainingCardSchema.extend({
   courses: z.array(courseCardSchema).optional(),
 });
 
+export const liveSessionSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  status: z.string(),
+  scheduled_start_at: nullableString,
+  scheduled_end_at: nullableString,
+  has_playback: z.boolean().optional(),
+});
+
+export const courseLessonSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  type: z.string().optional(),
+  summary: nullableString,
+  duration_seconds: z.number().optional(),
+  is_free_preview: z.boolean().optional(),
+  sort: z.number().optional(),
+  live_sessions: z.array(liveSessionSchema).optional(),
+});
+
+export const courseChapterSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  summary: nullableString,
+  sort: z.number().optional(),
+  lessons: z.array(courseLessonSchema).optional(),
+});
+
+export const courseDetailSchema = courseCardSchema.extend({
+  description: nullableString,
+  enroll_count: z.number().optional(),
+  view_count: z.number().optional(),
+  enrolled: z.boolean().optional(),
+  favorited: z.boolean().optional(),
+  liked: z.boolean().optional(),
+  category: categorySchema.nullable().optional(),
+  chapters: z.array(courseChapterSchema).optional(),
+  ungrouped_lessons: z.array(courseLessonSchema).optional(),
+});
+
 export const classroomHomeSchema = z.object({
   banners: z.array(bannerSchema),
   featured_trainings: z.array(trainingCardSchema),
@@ -329,3 +369,7 @@ export type HomeworkQuestion = z.infer<typeof homeworkQuestionSchema>;
 export type MyHomework = z.infer<typeof myHomeworkSchema>;
 export type MyFavoriteItem = z.infer<typeof myFavoriteItemSchema>;
 export type Order = z.infer<typeof orderSchema>;
+export type LiveSession = z.infer<typeof liveSessionSchema>;
+export type CourseLesson = z.infer<typeof courseLessonSchema>;
+export type CourseChapter = z.infer<typeof courseChapterSchema>;
+export type CourseDetail = z.infer<typeof courseDetailSchema>;

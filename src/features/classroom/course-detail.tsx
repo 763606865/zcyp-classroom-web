@@ -1,18 +1,39 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CoverImage } from '@/components/cover-image';
-import type { CourseCard } from '@/entities/classroom';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Spinner } from '@/components/ui/spinner';
+import type { CourseCard, CourseChapter, CourseDetail, CourseLesson } from '@/entities/classroom';
+import { getApiErrorMessage } from '@/lib/forms';
+import { getCourseDetail, getHotCourses } from './api';
 import { formatPrice, getLikeIconCount, trainingTypeColors, trainingTypeLabels } from './labels';
-import {
-  type CourseDetailMock,
-  type CourseChapter,
-  type CourseLesson,
-  type FaqItem,
-  formatDuration,
-  formatTotalDuration,
-} from './course-detail-mock';
+
+/* ─── Helpers ─── */
+function formatDuration(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+function formatTotalDuration(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:00`;
+}
+
+/* ─── Static data (FAQ & QR code not provided by API) ─── */
+const staticFaq = [
+  { question: '如何查看已购课程？', answer: '点击个人中心然后选择我的课程' },
+  { question: '课程购买后可以更换吗？', answer: '课程购买后不支持更换，请确认后再购买。' },
+  { question: '直播结束后会有回放吗？', answer: '直播结束后会生成回放，可在课程章节中观看。' },
+  { question: '无法登录怎么办？', answer: '请检查账号密码是否正确，或联系客服热线。' },
+  { question: '如何用手机听课？', answer: '关注中测高科公众号，在菜单中找到我的课程即可。' },
+  { question: '课程过期了怎么办？', answer: '课程过期后可联系客服申请延期，具体以平台规则为准。' },
+];
+
+const qrTextPrimary = '关注中测高科公众号';
 
 /* ─── Like Icon ─── */
 function LikeIcon({ className }: { className?: string }) {
@@ -56,7 +77,7 @@ function RefreshIcon() {
 /* ══════════════════════════════════════════
    Header Section
    ═══════════════════════════════════════════ */
-function CourseDetailHeader({ course }: { course: CourseDetailMock }) {
+function CourseDetailHeader({ course }: { course: CourseDetail }) {
   const likeCount = getLikeIconCount(course.like_count);
 
   return (
@@ -120,11 +141,13 @@ function CourseDetailHeader({ course }: { course: CourseDetailMock }) {
                   {course.teacher?.name ?? '中测讲师'}
                 </span>
                 <span style={{ fontSize: 14, color: '#999' }}>
-                  总时长：{formatTotalDuration(course.duration_minutes)}
+                  总时长：{formatTotalDuration(course.duration_minutes ?? 0)}
                 </span>
-                <span style={{ fontSize: 14, color: '#999' }}>
-                  观看有效期限：{course.validity_days}天
-                </span>
+                {course.enroll_count != null ? (
+                  <span style={{ fontSize: 14, color: '#999' }}>
+                    报名人数：{course.enroll_count}
+                  </span>
+                ) : null}
               </div>
             </div>
 
@@ -165,15 +188,19 @@ function CourseDetailHeader({ course }: { course: CourseDetailMock }) {
 /* ═══════════════════════════════════════════
    Course Intro Tab Content
    ═══════════════════════════════════════════ */
-function CourseIntroContent({ course }: { course: CourseDetailMock }) {
+function CourseIntroContent({ course }: { course: CourseDetail }) {
   return (
     <div>
       <h3 className="font-bold" style={{ fontSize: 16, color: '#222' }}>
         课程简介
       </h3>
-      <p className="mt-3" style={{ fontSize: 14, color: '#555', lineHeight: '24px' }}>
-        {course.description}
-      </p>
+      {course.description ? (
+        <div
+          className="mt-3"
+          style={{ fontSize: 14, color: '#555', lineHeight: '24px' }}
+          dangerouslySetInnerHTML={{ __html: course.description }}
+        />
+      ) : null}
       <div className="mt-6 w-full overflow-hidden rounded-lg">
         <CoverImage
           src={course.cover}
@@ -218,7 +245,7 @@ function LessonRow({
         </span>
         <VideoIcon />
         <span style={{ fontSize: 14, color: '#999' }}>
-          {formatDuration(lesson.duration_seconds)}
+          {formatDuration(lesson.duration_seconds ?? 0)}
         </span>
       </div>
       <span
@@ -234,11 +261,17 @@ function LessonRow({
   );
 }
 
-function CourseChaptersContent({ chapters }: { chapters: CourseChapter[] }) {
+function CourseChaptersContent({
+  chapters,
+  ungroupedLessons,
+}: {
+  chapters: CourseChapter[];
+  ungroupedLessons: CourseLesson[];
+}) {
   return (
     <div className="flex flex-col gap-2">
       {chapters.map((chapter, ci) =>
-        chapter.lessons.map((lesson, li) => (
+        (chapter.lessons ?? []).map((lesson, li) => (
           <LessonRow
             key={lesson.id}
             chapterIndex={ci + 1}
@@ -247,6 +280,16 @@ function CourseChaptersContent({ chapters }: { chapters: CourseChapter[] }) {
           />
         )),
       )}
+      {ungroupedLessons.length > 0 ? (
+        ungroupedLessons.map((lesson, li) => (
+          <LessonRow
+            key={lesson.id}
+            chapterIndex={chapters.length + 1}
+            lessonIndex={li + 1}
+            lesson={lesson}
+          />
+        ))
+      ) : null}
     </div>
   );
 }
@@ -254,8 +297,10 @@ function CourseChaptersContent({ chapters }: { chapters: CourseChapter[] }) {
 /* ═══════════════════════════════════════════
    Tab Section (Left Column)
    ══════════════════════════════════════════ */
-function CourseTabSection({ course }: { course: CourseDetailMock }) {
+function CourseTabSection({ course }: { course: CourseDetail }) {
   const [activeTab, setActiveTab] = useState<'intro' | 'chapters'>('intro');
+  const chapters = course.chapters ?? [];
+  const ungroupedLessons = course.ungrouped_lessons ?? [];
 
   return (
     <div className="rounded-lg bg-white p-6">
@@ -296,7 +341,7 @@ function CourseTabSection({ course }: { course: CourseDetailMock }) {
         {activeTab === 'intro' ? (
           <CourseIntroContent course={course} />
         ) : (
-          <CourseChaptersContent chapters={course.chapters} />
+          <CourseChaptersContent chapters={chapters} ungroupedLessons={ungroupedLessons} />
         )}
       </div>
     </div>
@@ -306,7 +351,7 @@ function CourseTabSection({ course }: { course: CourseDetailMock }) {
 /* ═══════════════════════════════════════════
    QR Code Section (Right Column)
    ═══════════════════════════════════════════ */
-function QrCodeSection({ course }: { course: CourseDetailMock }) {
+function QrCodeSection() {
   return (
     <div
       className="flex items-center gap-4 bg-white"
@@ -348,7 +393,7 @@ function QrCodeSection({ course }: { course: CourseDetailMock }) {
       {/* Text */}
       <div className="min-w-0 flex-1">
         <p style={{ fontSize: 16, color: '#222', fontWeight: 500 }}>
-          {course.qr_text_primary}
+          {qrTextPrimary}
           <span style={{ color: '#0F62FE' }}>职业技能培训</span>
           ，职业考证、求职招聘一网打尽
         </p>
@@ -366,7 +411,7 @@ function FaqItemRow({
   setHoveredIndex,
   index,
 }: {
-  item: FaqItem;
+  item: { question: string; answer: string };
   hoveredIndex: number | null;
   setHoveredIndex: (idx: number | null) => void;
   index: number;
@@ -425,7 +470,7 @@ function FaqItemRow({
   );
 }
 
-function FaqSection({ faq }: { faq: FaqItem[] }) {
+function FaqSection() {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   return (
     <div
@@ -436,7 +481,7 @@ function FaqSection({ faq }: { faq: FaqItem[] }) {
         常见问题
       </h3>
       <div className="mt-2 flex flex-col">
-        {faq.map((item, idx) => (
+        {staticFaq.map((item, idx) => (
           <FaqItemRow
             key={idx}
             item={item}
@@ -460,7 +505,7 @@ function RecommendCourseCard({ course }: { course: CourseCard }) {
 
   return (
     <Link
-      href={`/courses/${course.slug}`}
+      href={`/courses/${course.id}`}
       className="block overflow-hidden rounded-lg border border-[#ECECEC] bg-white transition-shadow hover:shadow-md"
     >
       {/* Image */}
@@ -522,8 +567,28 @@ function RecommendCourseCard({ course }: { course: CourseCard }) {
 /* ═══════════════════════════════════════════
    Recommend Section (Right Column)
    ═══════════════════════════════════════════ */
-function RecommendSection({ courses }: { courses: CourseCard[] }) {
+function RecommendSection() {
+  const [courses, setCourses] = useState<CourseCard[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void getHotCourses({ per_page: 12, page: 1 })
+      .then(result => {
+        if (cancelled) return;
+        setCourses(result.data.data);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const [displayCourses, setDisplayCourses] = useState(courses);
+
+  // Keep displayCourses in sync when courses load
+  useEffect(() => {
+    setDisplayCourses(courses);
+  }, [courses]);
 
   const handleRefresh = () => {
     const shuffled = [...courses].sort(() => Math.random() - 0.5);
@@ -561,12 +626,12 @@ function RecommendSection({ courses }: { courses: CourseCard[] }) {
 /* ═══════════════════════════════════════════
    Sidebar (Right Column)
    ═══════════════════════════════════════════ */
-function CourseSidebar({ course }: { course: CourseDetailMock }) {
+function CourseSidebar() {
   return (
     <div className="flex flex-col gap-4">
-      <QrCodeSection course={course} />
-      <FaqSection faq={course.faq} />
-      <RecommendSection courses={course.recommend_courses} />
+      <QrCodeSection />
+      <FaqSection />
+      <RecommendSection />
     </div>
   );
 }
@@ -574,7 +639,7 @@ function CourseSidebar({ course }: { course: CourseDetailMock }) {
 /* ═══════════════════════════════════════════
    Main Content Area (Below Header)
    ═══════════════════════════════════════════ */
-function CourseMainContent({ course }: { course: CourseDetailMock }) {
+function CourseMainContent({ course }: { course: CourseDetail }) {
   return (
     <section className="w-full" style={{ backgroundColor: '#f6f8fc' }}>
       <div
@@ -588,7 +653,7 @@ function CourseMainContent({ course }: { course: CourseDetailMock }) {
           </div>
           {/* Right: Sidebar */}
           <div className="w-full lg:w-[304px] lg:flex-shrink-0">
-            <CourseSidebar course={course} />
+            <CourseSidebar />
           </div>
         </div>
       </div>
@@ -599,7 +664,41 @@ function CourseMainContent({ course }: { course: CourseDetailMock }) {
 /* ═══════════════════════════════════════════
    Main View Export
    ═══════════════════════════════════════════ */
-export function CourseDetailView({ course }: { course: CourseDetailMock }) {
+export function CourseDetailView({ courseId }: { courseId: number }) {
+  const [course, setCourse] = useState<CourseDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | undefined>();
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    void getCourseDetail(courseId)
+      .then(result => {
+        if (!cancelled) setCourse(result.data);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) setError(getApiErrorMessage(err, '课程详情加载失败'));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [courseId]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <Spinner />
+      </div>
+    );
+  }
+
+  if (error || !course) {
+    return <EmptyState title="课程加载失败" description={error ?? '请稍后重试'} />;
+  }
+
   return (
     <div>
       <CourseDetailHeader course={course} />

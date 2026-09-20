@@ -260,7 +260,7 @@ function EditorRecommendSection({ courses }: { courses: CourseCard[] }) {
 							{/* Bottom: button + price */}
 							<div className="mt-[14px] flex items-center justify-between">
 								<Link
-									href={`/courses/${activeCourse.slug}`}
+									href={`/courses/${activeCourse.id}`}
 									className="inline-flex items-center gap-1.5 rounded"
 									style={{
 										padding: '6px 14px',
@@ -514,7 +514,7 @@ function CourseListItem({ course }: { course: CourseCard }) {
 
 	return (
 		<Link
-			href={`/courses/${course.slug}`}
+			href={`/courses/${course.id}`}
 			className="block overflow-hidden rounded-lg border border-[#ECECEC] bg-white"
 		>
 			{/* Image */}

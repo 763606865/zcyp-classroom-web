@@ -189,7 +189,7 @@ function HotCoursesSection({ courses }: { courses: ClassroomHome["featured_cours
 						? courses.slice(0, 8).map(course => (
 								<Link
 									key={course.id}
-									href={`/courses/${course.slug}`}
+									href={`/courses/${course.id}`}
 									className="group border border-[#ECECEC] rounded-[8px]"
 								>
 									<div className="overflow-hidden rounded-t-[8px] bg-muted">
