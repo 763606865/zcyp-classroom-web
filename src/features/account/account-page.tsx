@@ -114,7 +114,7 @@ export function AccountPageView() {
       </aside>
 
       {/* 右侧内容区（含移动端顶部导航） */}
-      <section className="min-w-0 flex-1 overflow-hidden rounded-md border border-black/10 bg-white">
+      <section className={`relative min-w-0 flex-1 rounded-md border border-black/10 ${tab === "profile" ? "bg-transparent border-0" : "bg-white"}`}>
         {/* 移动端顶部导航 */}
         <div className="flex overflow-x-auto border-b lg:hidden" style={{ borderColor: "#ECECEC" }}>
           {navGroups.flatMap((g) => g.items).map((item) => (

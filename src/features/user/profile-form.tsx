@@ -5,9 +5,7 @@ import { useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { Alert } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { FormField } from "@/components/ui/form-field";
+import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
@@ -38,7 +36,8 @@ export function ProfileForm() {
   const [formError, setFormError] = useState<string>();
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
-  const { register, handleSubmit, control, setError, formState: { errors, isSubmitting } } = useForm<ProfileValues>({
+  const [editing, setEditing] = useState(false);
+  const { register, handleSubmit, control, reset, setError, formState: { errors, isSubmitting } } = useForm<ProfileValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
       real_name: user?.real_name ?? "",
@@ -95,69 +94,120 @@ export function ProfileForm() {
     }
   });
 
+  const btnBase = "inline-flex items-center justify-center rounded text-sm font-medium transition-colors";
+  const btnEdit = "h-8 px-[13px] py-[6px] bg-[#0F62FE] text-white hover:bg-[#0D56D6]";
+  const btnDanger = "h-8 px-[13px] py-[6px] bg-[#F16767] text-white hover:bg-[#E05555]";
+
   return (
-    <div className="grid max-w-2xl gap-8">
-      <div>
-        <h1 className="text-2xl font-semibold">个人资料</h1>
-        <p className="mt-1 text-sm text-muted-foreground">头像会显示在课堂评论与个人中心。</p>
-      </div>
-      <Card>
-        <form onSubmit={onSubmit} className="grid gap-5" noValidate>
-          {formError ? <Alert>{formError}</Alert> : null}
-          <div className="flex flex-wrap items-center gap-4">
-            <UserAvatar name={name} src={avatarSrc} className="size-20 text-xl" />
-            <div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif"
-                className="sr-only"
-                onChange={(event) => void handleAvatar(event.target.files)}
-              />
-              <Button type="button" loading={uploading} onClick={() => fileInputRef.current?.click()}>更换头像</Button>
-              <p className="mt-2 text-xs text-muted-foreground">支持 jpg / png，不超过 2MB</p>
-            </div>
-          </div>
-          <div className="grid gap-5 sm:grid-cols-2">
-            <FormField id="real_name" label="真实姓名" error={errors.real_name?.message}>
-              <Input id="real_name" {...register("real_name")} />
-            </FormField>
-            <FormField id="nick_name" label="昵称" error={errors.nick_name?.message}>
-              <Input id="nick_name" {...register("nick_name")} />
-            </FormField>
-            <FormField id="email" label="邮箱" error={errors.email?.message}>
-              <Input id="email" type="email" {...register("email")} />
-            </FormField>
-            <FormField id="gender" label="性别" error={errors.gender?.message}>
-              <Controller
-                name="gender"
-                control={control}
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger id="gender"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0">未知</SelectItem>
-                      <SelectItem value="1">男</SelectItem>
-                      <SelectItem value="2">女</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </FormField>
-          </div>
-          <p className="text-sm text-muted-foreground">手机号：{user?.phone ? maskPhone(user.phone) : "—"}</p>
-          <div>
-            <Button type="submit" loading={isSubmitting}>保存资料</Button>
-          </div>
-        </form>
-      </Card>
-      <Card className="flex flex-wrap items-center justify-between gap-3">
+    <div className="grid gap-[17px]">
+      {/* 个人信息卡片 */}
+      <div className="rounded-md border border-black/10 bg-white" style={{ padding: "32px" }}>
+      {/* Header */}
+      <div className="relative mb-6">
         <div>
-          <p className="font-semibold">退出登录</p>
-          <p className="mt-1 text-sm text-muted-foreground">退出后需重新用手机号验证码登录。</p>
+          <h1 className="text-[20px] font-semibold" style={{ color: "#222" }}>个人信息</h1>
+          <p className="mt-[6px] text-sm" style={{ color: "rgba(34,34,34,0.6)" }}>头像会显示在课堂评论与个人中心。</p>
         </div>
-        <Button type="button" variant="danger" onClick={logout}>退出登录</Button>
-      </Card>
+        <div className="absolute z-10" style={{ right: 0, top: 0 }}>
+          {editing ? (
+            <div className="flex gap-2">
+              <button type="submit" form="profile-form" className={`${btnBase} ${btnEdit}`} disabled={isSubmitting}>
+                {isSubmitting ? "保存中..." : "保存"}
+              </button>
+              <button type="button" className={`${btnBase} border border-black/15 bg-white px-[13px] py-[6px] text-[#555] hover:bg-gray-50`} onClick={() => { setEditing(false); reset(); setFormError(undefined); }}>
+                取消
+              </button>
+            </div>
+          ) : (
+            <button type="button" className={`${btnBase} ${btnEdit}`} onClick={() => setEditing(true)}>
+              编辑个人信息
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Avatar */}
+      <div className="mb-8 flex items-center gap-4">
+        <UserAvatar name={name} src={avatarSrc} className="h-20 w-20 text-xl" />
+        <div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            className="sr-only"
+            onChange={(event) => void handleAvatar(event.target.files)}
+          />
+          <button type="button" className={`${btnBase} border border-[#0F62FE] bg-transparent px-[13px] py-[6px] text-[#0F62FE] hover:bg-blue-50`} disabled={uploading} onClick={() => fileInputRef.current?.click()}>
+            {uploading ? "上传中..." : "更换头像"}
+          </button>
+          <p className="mt-2 text-xs" style={{ color: "#999" }}>支持jpg/png格式，图片大小不超过2M</p>
+        </div>
+      </div>
+
+      {/* Form */}
+      <form id="profile-form" onSubmit={onSubmit} className="grid gap-5" noValidate>
+        {formError ? <Alert>{formError}</Alert> : null}
+
+        {/* 真实姓名 */}
+        <div className="grid items-center gap-3" style={{ gridTemplateColumns: "80px minmax(0, 70%)" }}>
+          <Label htmlFor="real_name" className="text-right text-sm" style={{ color: "#222" }}>真实姓名</Label>
+          <Input id="real_name" className="h-10 text-sm" disabled={!editing} {...register("real_name")} />
+        </div>
+        {errors.real_name?.message && <p className="ml-[92px] text-xs text-red-500">{errors.real_name.message}</p>}
+
+        {/* 用户昵称 */}
+        <div className="grid items-center gap-3" style={{ gridTemplateColumns: "80px minmax(0, 70%)" }}>
+          <Label htmlFor="nick_name" className="text-right text-sm" style={{ color: "#222" }}>用户昵称</Label>
+          <Input id="nick_name" className="h-10 text-sm" disabled={!editing} {...register("nick_name")} />
+        </div>
+        {errors.nick_name?.message && <p className="ml-[92px] text-xs text-red-500">{errors.nick_name.message}</p>}
+
+        {/* 邮箱 */}
+        <div className="grid items-center gap-3" style={{ gridTemplateColumns: "80px minmax(0, 70%)" }}>
+          <Label htmlFor="email" className="text-right text-sm" style={{ color: "#222" }}>邮箱</Label>
+          <Input id="email" type="email" className="h-10 text-sm" disabled={!editing} {...register("email")} />
+        </div>
+        {errors.email?.message && <p className="ml-[92px] text-xs text-red-500">{errors.email.message}</p>}
+
+        {/* 性别 */}
+        <div className="grid items-center gap-3" style={{ gridTemplateColumns: "80px minmax(0, 70%)" }}>
+          <Label htmlFor="gender" className="text-right text-sm" style={{ color: "#222" }}>性别</Label>
+          <Controller
+            name="gender"
+            control={control}
+            render={({ field }) => (
+              <Select value={field.value} onValueChange={field.onChange} disabled={!editing}>
+                <SelectTrigger id="gender" className="h-10">
+                  <SelectValue placeholder="请选择" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">未知</SelectItem>
+                  <SelectItem value="1">男</SelectItem>
+                  <SelectItem value="2">女</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+          />
+        </div>
+        {errors.gender?.message && <p className="ml-[92px] text-xs text-red-500">{errors.gender.message}</p>}
+
+        {/* 手机号（始终只读） */}
+        <div className="grid items-center gap-3" style={{ gridTemplateColumns: "80px minmax(0, 70%)" }}>
+          <span className="text-right text-sm" style={{ color: "#222" }}>手机号</span>
+          <Input className="h-10 text-sm" value={user?.phone ? maskPhone(user.phone) : "—"} disabled readOnly />
+        </div>
+      </form>
+
+      </div>
+
+      {/* 退出登录卡片 */}
+      <div className="flex items-center justify-between rounded-md border border-black/10 bg-white" style={{ padding: "16px 20px" }}>
+        <div>
+          <p className="text-sm font-semibold" style={{ color: "#222" }}>退出登录</p>
+          <p className="mt-1 text-xs" style={{ color: "#999" }}>退出后需重新用手机号验证码登录。</p>
+        </div>
+        <button type="button" className={`${btnBase} ${btnDanger}`} onClick={logout}>退出登录</button>
+      </div>
     </div>
   );
 }
