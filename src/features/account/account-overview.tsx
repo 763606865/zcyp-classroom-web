@@ -3,27 +3,22 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { CoverImage } from "@/components/cover-image";
-import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Spinner } from "@/components/ui/spinner";
-import type { MyCourse, MyExam, MyHomework } from "@/entities/classroom";
-import { formatDateTime } from "@/features/classroom/labels";
+import type { MyCourse } from "@/entities/classroom";
 import { getApiErrorMessage } from "@/lib/forms";
 import { getMyCourses, getMyExams, getMyFavorites, getMyHomeworks } from "./api";
+import { TodoPanel } from "./todo-panel";
 
 const HOMEWORK_TODO = new Set(["pending", "draft", "returned"]);
 const EXAM_TODO = new Set(["pending", "in_progress"]);
 
-function homeworkAction(status: string) {
-  if (status === "pending") return "开始作答";
-  if (status === "draft") return "继续作答";
-  return "重新作答";
-}
-
-function examAction(item: MyExam) {
-  if (item.progress_status === "in_progress") return "继续考试";
-  return "进入考场";
-}
+const statIcons = [
+  "/images/personal/preview-icon1.png",
+  "/images/personal/preview-icon2.png",
+  "/images/personal/preview-icon3.png",
+  "/images/personal/preview-icon4.png",
+];
 
 export function AccountOverviewPanel() {
   const [loading, setLoading] = useState(true);
@@ -33,8 +28,6 @@ export function AccountOverviewPanel() {
   const [examTotal, setExamTotal] = useState(0);
   const [favoriteTotal, setFavoriteTotal] = useState(0);
   const [courses, setCourses] = useState<MyCourse[]>([]);
-  const [homeworks, setHomeworks] = useState<MyHomework[]>([]);
-  const [exams, setExams] = useState<MyExam[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -53,11 +46,9 @@ export function AccountOverviewPanel() {
           .filter((item) => HOMEWORK_TODO.has(item.progress_status));
         const examTodos = [...pendingEx.data.data, ...progressEx.data.data]
           .filter((item) => EXAM_TODO.has(item.progress_status));
-        setCourses(courseResult.data.data.slice(0, 2));
+        setCourses(courseResult.data.data.slice(0, 6));
         setCourseTotal(courseResult.data.total);
-        setHomeworks(homeworkTodos.slice(0, 3));
         setHomeworkTotal(pendingHw.data.total + draftHw.data.total + returnedHw.data.total);
-        setExams(examTodos.slice(0, 3));
         setExamTotal(pendingEx.data.total + progressEx.data.total);
         setFavoriteTotal(favoriteResult.data.total);
       })
@@ -66,79 +57,124 @@ export function AccountOverviewPanel() {
     return () => { cancelled = true; };
   }, []);
 
-  if (loading) return <Spinner label="加载学习概览" />;
+  if (loading) return <div className="flex min-h-[198px] items-center justify-center"><Spinner label="加载学习概览" /></div>;
   if (error) return <EmptyState title="无法加载概览" description={error} />;
 
+  const stats = [
+    { label: "进行中的课程", value: courseTotal },
+    { label: "待交作业", value: homeworkTotal },
+    { label: "待考考试", value: examTotal },
+    { label: "我的收藏", value: favoriteTotal },
+  ];
+
+  const hasCourses = courses.length > 0;
+
   return (
-    <div className="grid gap-8">
-      <div>
-        <h1 className="text-2xl font-semibold">学习概览</h1>
-        <p className="mt-1 text-sm text-muted-foreground">从这里继续上课、交作业或参加考试。</p>
+    <div>
+      <h1 className="text-[20px] font-semibold" style={{ color: "#222" }}>学习概览</h1>
+      <p className="mt-[6px] text-sm" style={{ color: "rgba(34, 34, 34, 0.6)" }}>从这里继续上课、交作业或参加考试。</p>
+
+      {/* 统计卡片 */}
+      <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {stats.map((stat, i) => (
+          <div
+            key={stat.label}
+            className="flex items-center justify-between rounded-lg"
+            style={{
+              background: "#F6F8FC",
+              boxShadow: "0px 1px 2px 0px rgba(0,0,0,0.1)",
+              padding: "10px 16px 16px 24px",
+            }}
+          >
+            <div>
+              <p className="text-sm" style={{ color: "#555", lineHeight: "22px" }}>{stat.label}</p>
+              <p className="mt-2 text-[28px] font-semibold tabular-nums" style={{ color: "#0F62FE", lineHeight: "36px" }}>{stat.value}</p>
+            </div>
+            <img
+              src={statIcons[i]}
+              alt=""
+              className="h-[47px] w-[47px] shrink-0"
+              width={47}
+              height={47}
+            />
+          </div>
+        ))}
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="进行中的课程" value={courseTotal} />
-        <StatCard label="待交作业" value={homeworkTotal} />
-        <StatCard label="待考考试" value={examTotal} />
-        <StatCard label="收藏" value={favoriteTotal} />
-      </div>
-      <section className="grid gap-3">
-        <h2 className="text-lg font-semibold">继续学习</h2>
-        {courses.length === 0 ? (
-          <EmptyState title="暂无进行中的课程" description="报名培训或开通课程后会出现在这里。" action={<Link href="/trainings" className="text-sm text-primary">浏览培训</Link>} />
+
+      {/* 继续学习 */}
+      <div className="mt-8">
+        <h2 className="text-base font-semibold" style={{ color: "#222" }}>继续学习</h2>
+        {!hasCourses ? (
+          <div className="mt-6 flex min-h-[198px] flex-col items-center justify-center rounded-lg border" style={{ borderColor: "#ECECEC", background: "#fff" }}>
+            <img src="/images/personal/study-emty.png" alt="" className="h-[75px] w-[92px]" width={92} height={75} />
+            <p className="mt-4 text-sm" style={{ color: "#555" }}>暂无学习项目</p>
+          </div>
         ) : (
-          courses.map((item) => (
-            <Card key={item.id} className="flex flex-wrap items-center gap-4">
-              <CoverImage src={item.course.cover} alt="" className="h-20 w-32 rounded-md" />
-              <div className="min-w-0 flex-1">
-                <Link href={`/account/courses/${item.course.id}`} className="font-semibold hover:text-primary">{item.course.title}</Link>
-                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
-                  <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, item.progress ?? 0)}%` }} />
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">进度 {item.progress ?? 0}%</p>
-              </div>
-              <Link href={`/account/courses/${item.course.id}`} className="inline-flex min-h-10 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary-hover">去上课</Link>
-            </Card>
-          ))
-        )}
-      </section>
-      <section className="grid gap-3">
-        <h2 className="text-lg font-semibold">待办</h2>
-        {homeworks.length === 0 && exams.length === 0 ? (
-          <p className="text-sm text-muted-foreground">暂无待办作业或考试。</p>
-        ) : (
-          <div className="grid gap-3">
-            {homeworks.map((item) => (
-              <Card key={`hw-${item.id}`} className="flex flex-wrap items-center justify-between gap-3 py-4">
-                <div>
-                  <p className="text-xs text-muted-foreground">作业</p>
-                  <p className="mt-1 font-semibold">{item.title}</p>
-                  <p className="mt-1 text-sm text-danger">截止 {formatDateTime(item.deadline_at)}</p>
-                </div>
-                <Link href={`/account/homeworks/${item.id}`} className="text-sm font-medium text-primary">{homeworkAction(item.progress_status)}</Link>
-              </Card>
-            ))}
-            {exams.map((item) => (
-              <Card key={`ex-${item.id}`} className="flex flex-wrap items-center justify-between gap-3 py-4">
-                <div>
-                  <p className="text-xs text-muted-foreground">考试</p>
-                  <p className="mt-1 font-semibold">{item.title}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">窗口至 {formatDateTime(item.end_at)}</p>
-                </div>
-                <Link href={`/account/exams/${item.id}`} className="text-sm text-primary">{examAction(item)}</Link>
-              </Card>
+          <div className="mt-6 grid gap-5 sm:grid-cols-2">
+            {courses.map((item) => (
+              <CourseCard key={item.id} item={item} />
             ))}
           </div>
         )}
-      </section>
+      </div>
+
+      {/* 待办事项 */}
+      <div className="mt-[30px]">
+        <TodoPanel />
+      </div>
     </div>
   );
 }
 
-function StatCard({ label, value }: { label: string; value: number }) {
+function CourseCard({ item }: { item: MyCourse }) {
+  const progress = item.progress ?? 0;
+
   return (
-    <Card className="p-4">
-      <p className="text-2xl font-semibold tabular-nums text-primary">{value}</p>
-      <p className="mt-1 text-sm text-muted-foreground">{label}</p>
-    </Card>
+    <div className="overflow-hidden rounded-xl border" style={{ borderColor: "#ECECEC", background: "#fff" }}>
+      {/* 头部数据区 */}
+      <div className="flex" style={{ padding: "8px 16px 12px 10px" }}>
+        <CoverImage src={item.course.cover} alt="" className="h-[98px] w-[168px] shrink-0 rounded-md object-cover" />
+        <div className="ml-[10px] min-w-0 flex-1">
+          <Link href={`/account/courses/${item.course.id}`} className="line-clamp-2 text-lg font-semibold hover:text-primary" style={{ color: "#222" }}>
+            {item.course.title}
+          </Link>
+          <div className="mt-3 flex items-center justify-between">
+            <span className="text-sm" style={{ color: "#999" }}>学习进度</span>
+            <span className="text-sm tabular-nums">
+              <span style={{ color: "#1667FE" }}>{progress}</span>
+              <span style={{ color: "#222" }}>/100</span>
+            </span>
+          </div>
+          {/* 进度条 */}
+          <div className="mt-[5px] h-[9px] overflow-hidden rounded-[10px]" style={{ background: "#F4F4F4" }}>
+            <div
+              className="h-full rounded-[10px]"
+              style={{
+                width: `${Math.min(100, progress)}%`,
+                background: "linear-gradient( 90deg, #6FA1FF 0%, #0F62FE 100%)",
+              }}
+            />
+          </div>
+        </div>
+      </div>
+      {/* 底部按钮 */}
+      <div className="flex" style={{ borderTop: "1px solid #ECECEC" }}>
+        <Link
+          href={`/account/courses/${item.course.id}`}
+          className="flex h-[41px] flex-1 items-center justify-center text-sm"
+          style={{ color: "#0F62FE", background: "#F6F8FC" }}
+        >
+          继续学习
+        </Link>
+        <div className="my-[8px] w-px" style={{ background: "#DBDBDB", height: "25px", alignSelf: "center" }} />
+        <button
+          type="button"
+          className="flex h-[41px] flex-1 items-center justify-center text-sm"
+          style={{ color: "#F16767", background: "#F6F8FC" }}
+        >
+          删除课程
+        </button>
+      </div>
+    </div>
   );
 }

@@ -30,7 +30,7 @@ export function SiteHeader() {
   if (pathname === "/login") return null;
 
   return (
-    <header className="sticky top-0 z-50 bg-[#f5f9fd]">
+    <header className="sticky top-0 z-50 bg-white/60 backdrop-blur-sm">
       {settings?.maintenance_message ? (
         <p className="bg-muted px-6 py-2 text-center text-sm">{settings.maintenance_message}</p>
       ) : null}
