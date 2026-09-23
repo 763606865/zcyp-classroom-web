@@ -30,7 +30,6 @@ const navGroups: { title: string; items: { id: Tab; label: string; iconNormal: s
       { id: "overview", label: "学习概览", iconNormal: "/images/personal/preview.png", iconActive: "/images/personal/preview-act.png" },
       { id: "trainings", label: "我的培训", iconNormal: "/images/personal/train.png", iconActive: "/images/personal/train-act.png" },
       { id: "courses", label: "我的课程", iconNormal: "/images/personal/course.png", iconActive: "/images/personal/course-act.png" },
-      { id: "classes", label: "我的班级", iconNormal: "/images/personal/classroom.png", iconActive: "/images/personal/classroom-act.png" },
       { id: "favorites", label: "我的收藏", iconNormal: "/images/personal/collection.png", iconActive: "/images/personal/collection-act.png" },
     ],
   },

@@ -42,6 +42,12 @@ export function unfavoriteCourse(courseId: number) {
   });
 }
 
+export function unfavoriteTraining(trainingId: number) {
+  return apiClient.delete(`/api/me/trainings/${trainingId}/favorite`, {
+    retry: 0,
+  });
+}
+
 export function likeCourse(courseId: number) {
   return apiClient.post<CourseInteraction>(`/api/me/courses/${courseId}/like`, {}, {
     responseSchema: courseInteractionSchema,
