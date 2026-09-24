@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Pagination } from "@/components/ui/pagination";
@@ -31,6 +31,7 @@ const statusIconMap: Record<string, string> = {
 
 
 export function MyHomeworksPanel() {
+  const router = useRouter();
   const [items, setItems] = useState<MyHomework[]>([]);
   const [error, setError] = useState<string>();
   const [loading, setLoading] = useState(true);
@@ -93,14 +94,12 @@ export function MyHomeworksPanel() {
         <div className="mt-[16px] grid grid-cols-1 gap-[16px] sm:grid-cols-2 md:grid-cols-3">
           {items.map((item) => {
             const iconSrc = statusIconMap[item.progress_status] ?? "/images/personal/homework-icon.png";
-            const attachmentText = item.attachment_urls && item.attachment_urls.length > 0
-              ? item.attachment_urls.map(url => url.split('/').pop()).join(', ')
-              : '无附件';
             return (
               <div
                 key={item.id}
-                className="relative overflow-hidden rounded-xl border bg-white"
+                className="relative cursor-pointer overflow-hidden rounded-xl border bg-white transition-shadow hover:shadow-md"
                 style={{ borderColor: '#ECECEC', padding: '12px 16px' }}
+                onClick={() => router.push(`/account/homeworks/${item.id}`)}
               >
                 {/* 右上角状态图标 */}
                 <img
@@ -119,13 +118,12 @@ export function MyHomeworksPanel() {
                     width={30}
                     height={30}
                   />
-                  <Link
-                    href={`/account/homeworks/${item.id}`}
-                    className="min-w-0 truncate text-base font-semibold hover:text-[#0F62FE]"
+                  <span
+                    className="min-w-0 truncate text-base font-semibold"
                     style={{ color: '#222', fontSize: 16 }}
                   >
                     {item.title}
-                  </Link>
+                  </span>
                 </div>
                 {/* 第二行：截止时间 */}
                 <div className="mt-[14px]">
@@ -133,11 +131,27 @@ export function MyHomeworksPanel() {
                     截止时间：{item.deadline_at ? formatDateTime(item.deadline_at) : '待定'}
                   </span>
                 </div>
-                {/* 第三行：附件 */}
-                <div className="mt-[10px]">
-                  <span style={{ fontSize: 14, color: '#555' }}>
-                    作业附件：{attachmentText}
-                  </span>
+                {/* 第三行：附件（点击下载，不触发卡片跳转） */}
+                <div className="mt-[10px] flex flex-wrap items-center gap-x-[6px]">
+                  <span style={{ fontSize: 14, color: '#555' }}>作业附件：</span>
+                  {item.attachment_urls && item.attachment_urls.length > 0 ? (
+                    item.attachment_urls.map((url) => (
+                      <a
+                        key={url}
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                        download
+                        className="hover:underline"
+                        style={{ fontSize: 14, color: '#0F62FE' }}
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        {url.split('/').pop()}
+                      </a>
+                    ))
+                  ) : (
+                    <span style={{ fontSize: 14, color: '#555' }}>无附件</span>
+                  )}
                 </div>
               </div>
             );
