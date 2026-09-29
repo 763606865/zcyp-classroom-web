@@ -1,6 +1,6 @@
 "use client";
 
-import { Card } from "@/components/ui/card";
+import { useToast } from "@/components/ui/toast";
 import type { Teacher } from "@/entities/classroom";
 
 function Avatar({ name, src }: { name: string; src?: string | null }) {
@@ -19,31 +19,34 @@ function Avatar({ name, src }: { name: string; src?: string | null }) {
 }
 
 export function CourseTeacherCard({ teachers }: { teachers: Teacher[] }) {
-  const list = teachers.length > 0 ? teachers : [];
+  const { toast } = useToast();
+  const teacher = teachers[0];
 
   return (
-    <Card className="flex h-full min-h-0 flex-col justify-center p-4">
-      <p className="text-xs font-medium text-muted-foreground">主讲老师</p>
-      {list.length === 0 ? (
-        <p className="mt-2 text-sm text-muted-foreground">师资介绍即将公布</p>
+    <div className="rounded-lg bg-white" style={{ padding: "16px 16px 18px" }}>
+      {!teacher ? (
+        <p style={{ fontSize: 14, color: "#999" }}>师资介绍即将公布</p>
       ) : (
-        <div className="mt-2 grid gap-3">
-          {list.slice(0, 2).map((teacher) => (
-            <div key={teacher.id} className="flex gap-3">
-              <Avatar name={teacher.name} src={teacher.avatar} />
-              <div className="min-w-0">
-                <p className="font-semibold leading-5">{teacher.name}</p>
-                <p className="mt-0.5 truncate text-xs text-primary">
-                  {[teacher.title, teacher.organization].filter(Boolean).join(" · ") || "讲师"}
-                </p>
-                {teacher.expertise ? (
-                  <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">{teacher.expertise}</p>
-                ) : null}
-              </div>
-            </div>
-          ))}
+        <div className="flex items-center gap-3">
+          <Avatar name={teacher.name} src={teacher.avatar} />
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-medium" style={{ fontSize: 16, color: "#222" }}>
+              {teacher.name}
+            </p>
+            <p className="mt-1 truncate" style={{ fontSize: 14, color: "#555" }}>
+              主讲老师
+            </p>
+          </div>
+          <button
+            type="button"
+            className="flex-shrink-0 rounded transition hover:opacity-80"
+            style={{ padding: "5px 14px", fontSize: 14, color: "#0F62FE", border: "1px solid #0F62FE" }}
+            onClick={() => toast({ title: "功能开发中", description: "关注能力即将上线，敬请期待" })}
+          >
+            + 关注
+          </button>
         </div>
       )}
-    </Card>
+    </div>
   );
 }

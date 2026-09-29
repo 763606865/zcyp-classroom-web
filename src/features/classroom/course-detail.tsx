@@ -5,10 +5,24 @@ import { useEffect, useState } from 'react';
 import { CoverImage } from '@/components/cover-image';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Spinner } from '@/components/ui/spinner';
-import type { CourseCard, CourseChapter, CourseDetail, CourseLesson } from '@/entities/classroom';
+import type { CourseCard, CourseDetail } from '@/entities/classroom';
 import { getApiErrorMessage } from '@/lib/forms';
 import { getCourseDetail, getHotCourses } from './api';
 import { formatPrice, getLikeIconCount, trainingTypeColors, trainingTypeLabels } from './labels';
+
+/* ─── Shared shapes (reused by the learn page) ─── */
+export type ChapterLessonLike = {
+  id: number;
+  title: string;
+  type?: string;
+  live_sessions?: { status?: string | null; has_playback?: boolean }[];
+};
+
+export type ChapterGroupLike = {
+  id: number;
+  title: string;
+  lessons?: ChapterLessonLike[];
+};
 
 /* ─── Helpers ─── */
 function formatTotalDuration(minutes: number): string {
@@ -17,13 +31,13 @@ function formatTotalDuration(minutes: number): string {
   return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:00`;
 }
 
-function getLessonIcon(lesson: { type?: string; live_sessions?: { has_playback?: boolean }[] }): string {
+function getLessonIcon(lesson: ChapterLessonLike): string {
   const hasLive = lesson.live_sessions && lesson.live_sessions.length > 0;
   if (hasLive) return '/images/course/live-icon.png';
   return '/images/course/video-icon.png';
 }
 
-function getLessonStatus(lesson: { live_sessions?: { status?: string | null; has_playback?: boolean }[] }): { text: string; color: string } {
+function getLessonStatus(lesson: ChapterLessonLike): { text: string; color: string } {
   if (!lesson.live_sessions || lesson.live_sessions.length === 0) {
     return { text: '', color: '#999' };
   }
@@ -209,24 +223,28 @@ function CourseIntroContent({ course }: { course: CourseDetail }) {
 /* ═══════════════════════════════════════════
    Course Chapters Tab Content
    ═══════════════════════════════════════════ */
-function LessonRow({
+export function LessonRow({
   lessonIndex,
   lesson,
+  active,
+  onLessonClick,
 }: {
-  chapterIndex?: number;
   lessonIndex: number;
-  lesson: CourseLesson;
+  lesson: ChapterLessonLike;
+  active?: boolean;
+  onLessonClick?: (lesson: ChapterLessonLike) => void;
 }) {
   const iconSrc = getLessonIcon(lesson);
   const status = getLessonStatus(lesson);
 
   return (
     <div
-      className="flex items-center justify-between rounded"
+      className={`flex items-center justify-between rounded ${onLessonClick ? 'cursor-pointer transition-colors hover:bg-[#e7efff]' : ''}`}
       style={{
         padding: '10px 16px',
-        backgroundColor: '#f6f8fc',
+        backgroundColor: active ? '#e7efff' : '#f6f8fc',
       }}
+      onClick={() => onLessonClick?.(lesson)}
     >
       <div className="flex items-center gap-3 min-w-0 flex-1">
         <span
@@ -261,10 +279,14 @@ function LessonRow({
   );
 }
 
-function ChapterAccordion({
+export function ChapterAccordion({
   chapter,
+  activeLessonId,
+  onLessonClick,
 }: {
-  chapter: CourseChapter;
+  chapter: ChapterGroupLike;
+  activeLessonId?: number;
+  onLessonClick?: (lesson: ChapterLessonLike) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const lessons = chapter.lessons ?? [];
@@ -295,7 +317,13 @@ function ChapterAccordion({
       {expanded && lessons.length > 0 ? (
         <div className="flex flex-col gap-2 px-4 pb-3 pt-1">
           {lessons.map((lesson, li) => (
-            <LessonRow key={lesson.id} lessonIndex={li + 1} lesson={lesson} />
+            <LessonRow
+              key={lesson.id}
+              lessonIndex={li + 1}
+              lesson={lesson}
+              active={activeLessonId === lesson.id}
+              onLessonClick={onLessonClick}
+            />
           ))}
         </div>
       ) : null}
@@ -303,22 +331,37 @@ function ChapterAccordion({
   );
 }
 
-function CourseChaptersContent({
+export function CourseChaptersContent({
   chapters,
   ungroupedLessons,
+  activeLessonId,
+  onLessonClick,
 }: {
-  chapters: CourseChapter[];
-  ungroupedLessons: CourseLesson[];
+  chapters: ChapterGroupLike[];
+  ungroupedLessons: ChapterLessonLike[];
+  activeLessonId?: number;
+  onLessonClick?: (lesson: ChapterLessonLike) => void;
 }) {
   return (
     <div>
       {chapters.map((chapter) => (
-        <ChapterAccordion key={chapter.id} chapter={chapter} />
+        <ChapterAccordion
+          key={chapter.id}
+          chapter={chapter}
+          activeLessonId={activeLessonId}
+          onLessonClick={onLessonClick}
+        />
       ))}
       {ungroupedLessons.length > 0 ? (
         <div className="flex flex-col gap-2 pt-2">
           {ungroupedLessons.map((lesson, li) => (
-            <LessonRow key={lesson.id} lessonIndex={li + 1} lesson={lesson} />
+            <LessonRow
+              key={lesson.id}
+              lessonIndex={li + 1}
+              lesson={lesson}
+              active={activeLessonId === lesson.id}
+              onLessonClick={onLessonClick}
+            />
           ))}
         </div>
       ) : null}
@@ -615,16 +658,11 @@ function RecommendSection() {
     };
   }, []);
 
-  const [displayCourses, setDisplayCourses] = useState(courses);
-
-  // Keep displayCourses in sync when courses load
-  useEffect(() => {
-    setDisplayCourses(courses);
-  }, [courses]);
+  const [shuffled, setShuffled] = useState<CourseCard[] | null>(null);
+  const displayCourses = shuffled ?? courses;
 
   const handleRefresh = () => {
-    const shuffled = [...courses].sort(() => Math.random() - 0.5);
-    setDisplayCourses(shuffled);
+    setShuffled([...courses].sort(() => Math.random() - 0.5));
   };
 
   return (
@@ -697,22 +735,20 @@ function CourseMainContent({ course }: { course: CourseDetail }) {
    Main View Export
    ═══════════════════════════════════════════ */
 export function CourseDetailView({ courseId }: { courseId: number }) {
-  const [course, setCourse] = useState<CourseDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | undefined>();
+  const [loaded, setLoaded] = useState<{ courseId: number; course: CourseDetail | null; error?: string }>();
+  const isCurrent = loaded?.courseId === courseId;
+  const loading = !isCurrent;
+  const course = isCurrent ? loaded.course : null;
+  const error = isCurrent ? loaded.error : undefined;
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
     void getCourseDetail(courseId)
       .then(result => {
-        if (!cancelled) setCourse(result.data);
+        if (!cancelled) setLoaded({ courseId, course: result.data });
       })
       .catch((err: unknown) => {
-        if (!cancelled) setError(getApiErrorMessage(err, '课程详情加载失败'));
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setLoaded({ courseId, course: null, error: getApiErrorMessage(err, '课程详情加载失败') });
       });
     return () => {
       cancelled = true;

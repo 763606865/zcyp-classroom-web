@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/features/auth/auth-provider";
 import { ChatEmojiPicker } from "./chat-emoji-picker";
@@ -13,7 +12,6 @@ import { browserTokenStorage } from "@/features/auth/token-storage";
 export function CourseChat({ courseId }: { courseId: number }) {
   const { user } = useAuth();
   const [conversationId, setConversationId] = useState<string>();
-  const [title, setTitle] = useState("班级群聊");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [text, setText] = useState("");
   const [error, setError] = useState<string>();
@@ -30,7 +28,6 @@ export function CourseChat({ courseId }: { courseId: number }) {
         if (cancelled) return;
         roomId = room.conversationId;
         setConversationId(room.conversationId);
-        setTitle(room.title);
         setReady(true);
         setError(undefined);
         setMessages(imClient.getMessages(room.conversationId));
@@ -82,18 +79,34 @@ export function CourseChat({ courseId }: { courseId: number }) {
     : messages;
 
   return (
-    <Card className="flex h-full min-h-0 aspect-video flex-col p-4 lg:aspect-auto">
-      <h2 className="font-semibold">{title}</h2>
-      {error ? <p className="mt-2 text-sm text-muted-foreground">{error}</p> : null}
-      <div className="mt-3 min-h-0 flex-1 space-y-2 overflow-y-auto text-sm">
-        {!error && !ready ? <p className="text-muted-foreground">正在加入群聊…</p> : null}
-        {ready && visible.length === 0 ? <p className="text-muted-foreground">还没有消息，打个招呼吧。</p> : null}
+    <div className="flex grow shrink basis-0 flex-col rounded-lg bg-white" style={{ padding: "16px 16px 18px" }}>
+      <div className="flex items-center gap-2">
+        <img src="/images/study/im-icon.png" alt="" width={16} height={16} className="flex-shrink-0" />
+        <h2 className="font-medium" style={{ fontSize: 16, color: "#222" }}>聊天互动</h2>
+      </div>
+      {error ? <p className="mt-2 text-xs" style={{ color: "#F16767" }}>{error}</p> : null}
+      <div
+        className="mt-3 flex min-h-[380px] grow shrink basis-0 flex-col gap-3 overflow-y-auto lg:min-h-0"
+        style={{ scrollbarWidth: "thin" }}
+      >
+        {!error && !ready ? <p style={{ fontSize: 14, color: "#999" }}>正在加入群聊…</p> : null}
+        {ready && visible.length === 0 ? <p style={{ fontSize: 14, color: "#999" }}>还没有消息，打个招呼吧。</p> : null}
         {visible.map((item) => {
           const mine = imClient.isOwnMessage(item, [user?.id, user?.uuid]);
-          return (
-            <div key={item.id} className={mine ? "text-right" : ""}>
-              <p className="text-xs text-muted-foreground">{mine ? "我" : item.userName}</p>
-              <p className={`mt-0.5 inline-block max-w-[90%] whitespace-pre-wrap break-words rounded-md px-3 py-1.5 ${mine ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+          return mine ? (
+            <div key={item.id} className="flex flex-col items-end">
+              <p className="whitespace-pre-wrap break-words rounded-lg px-3 py-2 text-right"
+                style={{ maxWidth: "90%", fontSize: 14, lineHeight: "22px", backgroundColor: "#0F62FE", color: "#fff" }}>
+                {item.content}
+              </p>
+            </div>
+          ) : (
+            <div key={item.id} className="flex flex-col items-start">
+              <p
+                className="whitespace-pre-wrap break-words rounded-lg px-3 py-2"
+                style={{ maxWidth: "90%", fontSize: 14, lineHeight: "22px", backgroundColor: "#f6f8fc", color: "#555" }}
+              >
+                <span style={{ color: "#0F62FE", marginRight: 8 }}>{item.userName}</span>
                 {item.content}
               </p>
             </div>
@@ -101,18 +114,25 @@ export function CourseChat({ courseId }: { courseId: number }) {
         })}
         <div ref={bottomRef} />
       </div>
-      <form className="mt-3 flex gap-2" onSubmit={submit}>
+      <form className="mt-4 flex items-center gap-2" onSubmit={submit}>
         <Input
           ref={inputRef}
           value={text}
           onChange={(event) => setText(event.target.value)}
-          placeholder={ready ? "输入消息" : "群聊未就绪"}
+          placeholder={ready ? "发表你的意见吧" : "群聊未就绪"}
           disabled={!ready}
           maxLength={500}
         />
         <ChatEmojiPicker disabled={!ready} onPick={insertEmoji} />
-        <Button type="submit" disabled={!ready || !text.trim()}>发送</Button>
+        <Button
+          type="submit"
+          disabled={!ready || !text.trim()}
+          className="rounded-full px-5"
+          style={{ backgroundColor: "#0F62FE" }}
+        >
+          发送
+        </Button>
       </form>
-    </Card>
+    </div>
   );
 }

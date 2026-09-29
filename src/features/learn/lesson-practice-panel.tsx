@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
@@ -194,7 +193,17 @@ function QuestionForm({
   );
 }
 
-export function LessonPracticePanel({ courseId, lessonId }: { courseId: number; lessonId: number }) {
+const PAGE_SIZE = 3;
+
+export function LessonPracticePanel({
+  courseId,
+  lessonId,
+  lessonCode,
+}: {
+  courseId: number;
+  lessonId: number;
+  lessonCode?: string;
+}) {
   const { toast } = useToast();
   const [attempts, setAttempts] = useState<PracticeAttempt[]>([]);
   const [drafts, setDrafts] = useState<Record<number, string[]>>({});
@@ -202,6 +211,8 @@ export function LessonPracticePanel({ courseId, lessonId }: { courseId: number; 
   const [loading, setLoading] = useState(true);
   const [submittingId, setSubmittingId] = useState<number>();
   const [picked, setPicked] = useState<PickedQuestion | null>(null);
+  const [activeAttemptId, setActiveAttemptId] = useState<number>();
+  const [pageIndex, setPageIndex] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -231,17 +242,26 @@ export function LessonPracticePanel({ courseId, lessonId }: { courseId: number; 
     };
   }, [courseId, lessonId]);
 
-  const banners = useMemo(() => {
-    const items: Array<{ attempt: PracticeAttempt; question: PracticeQuestion; index: number }> = [];
-    for (const attempt of attempts) {
-      sortedQuestions(attempt).forEach((question, index) => {
-        items.push({ attempt, question, index });
-      });
-    }
-    return items;
-  }, [attempts]);
+  const totalPages = Math.max(1, Math.ceil(attempts.length / PAGE_SIZE));
+  const safePageIndex = Math.min(pageIndex, totalPages - 1);
+  const visibleAttempts = attempts.slice(safePageIndex * PAGE_SIZE, safePageIndex * PAGE_SIZE + PAGE_SIZE);
 
-  const active = banners.find((item) => item.attempt.id === picked?.attemptId && item.question.id === picked?.questionId);
+  const firstUnfinished = attempts.find((attempt) => attempt.status !== "completed");
+  const currentAttemptId = activeAttemptId ?? firstUnfinished?.id ?? attempts[0]?.id;
+
+  const active = attempts.find(
+    (attempt) => attempt.id === picked?.attemptId && sortedQuestions(attempt).some((question) => question.id === picked?.questionId),
+  );
+  const activeQuestions = active ? sortedQuestions(active) : [];
+  const activeQuestion = activeQuestions.find((question) => question.id === picked?.questionId);
+  const activeQuestionIndex = activeQuestion ? activeQuestions.findIndex((question) => question.id === activeQuestion.id) : -1;
+
+  function openPractice(attempt: PracticeAttempt) {
+    setActiveAttemptId(attempt.id);
+    const questions = sortedQuestions(attempt);
+    const target = questions.find((question) => !isAnswered(question)) ?? questions[0];
+    if (target) setPicked({ attemptId: attempt.id, questionId: target.id });
+  }
 
   async function submitQuestion(attempt: PracticeAttempt, question: PracticeQuestion) {
     const answer = drafts[question.id] ?? [];
@@ -264,58 +284,85 @@ export function LessonPracticePanel({ courseId, lessonId }: { courseId: number; 
 
   if (loading) {
     return (
-      <Card className="mt-4 p-4">
-        <h2 className="font-semibold">课上练习</h2>
-        <div className="mt-4"><Spinner label="加载练习" /></div>
-      </Card>
+      <div className="rounded-lg bg-white" style={{ padding: "16px 16px 20px" }}>
+        <h2 className="font-medium" style={{ fontSize: 16, color: "#222" }}>课堂作业</h2>
+        <div className="mt-4"><Spinner label="加载课堂作业" /></div>
+      </div>
     );
   }
   if (error) {
     return (
-      <Card className="mt-4 p-4">
-        <h2 className="font-semibold">课上练习</h2>
-        <p className="mt-2 text-sm text-muted-foreground">{error}</p>
-      </Card>
+      <div className="rounded-lg bg-white" style={{ padding: "16px 16px 20px" }}>
+        <h2 className="font-medium" style={{ fontSize: 16, color: "#222" }}>课堂作业</h2>
+        <p className="mt-2 text-sm" style={{ color: "#F16767" }}>{error}</p>
+      </div>
     );
   }
-  if (banners.length === 0) return null;
+  if (attempts.length === 0) return null;
 
   return (
-    <Card className="mt-4 overflow-hidden p-4">
-      <div className="flex items-end justify-between gap-3">
-        <div>
-          <h2 className="font-semibold">课上练习</h2>
-          <p className="mt-1 text-sm text-muted-foreground">左右滑动选题，点开后作答；提交后才显示解析和本班统计。</p>
-        </div>
-        <p className="shrink-0 text-xs text-muted-foreground">共 {banners.length} 题</p>
+    <div className="rounded-lg bg-white" style={{ padding: "16px 16px 20px" }}>
+      <div className="flex items-center justify-between">
+        <h2 className="font-medium" style={{ fontSize: 16, color: "#222" }}>课堂作业</h2>
+        {attempts.length > PAGE_SIZE ? (
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              aria-label="上一页"
+              disabled={safePageIndex === 0}
+              className="transition-opacity hover:opacity-70 disabled:opacity-30"
+              onClick={() => setPageIndex((current) => Math.max(0, current - 1))}
+            >
+              <img src="/images/study/study-l-icon.png" alt="" width={16} height={16} />
+            </button>
+            <button
+              type="button"
+              aria-label="下一页"
+              disabled={safePageIndex >= totalPages - 1}
+              className="transition-opacity hover:opacity-70 disabled:opacity-30"
+              onClick={() => setPageIndex((current) => Math.min(totalPages - 1, current + 1))}
+            >
+              <img src="/images/study/study-r-icon.png" alt="" width={16} height={16} />
+            </button>
+          </div>
+        ) : null}
       </div>
-      <div className="-mx-4 mt-4 overflow-x-auto px-4 pb-1 [scrollbar-width:thin]">
-        <div className="flex snap-x snap-mandatory gap-3">
-          {banners.map(({ attempt, question, index }) => {
-            const done = isAnswered(question);
-            return (
-              <button
-                key={`${attempt.id}-${question.id}`}
-                type="button"
-                onClick={() => setPicked({ attemptId: attempt.id, questionId: question.id })}
-                className={`w-64 shrink-0 snap-start rounded-xl border p-4 text-left transition ${
-                  done
-                    ? "border-primary/30 bg-primary/5 hover:border-primary"
-                    : "border-border bg-gradient-to-br from-muted/80 to-surface hover:border-primary"
-                }`}
-              >
-                <p className="text-xs text-muted-foreground">
-                  第 {index + 1} 题 · {questionTypeLabel(question.type)}
-                  {done ? " · 已答" : ""}
-                </p>
-                <p className="mt-2 line-clamp-4 text-sm font-medium leading-6">{question.stem}</p>
-              </button>
-            );
-          })}
-        </div>
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {visibleAttempts.map((attempt) => {
+          const done = attempt.status === "completed";
+          const questionCount = attempt.practice?.question_count ?? sortedQuestions(attempt).length;
+          const answered = attempt.answered_count ?? 0;
+          const correct = attempt.correct_count ?? 0;
+          const stats = done || answered > 0
+            ? `共${questionCount}题 答对${correct}题 正确率${questionCount > 0 ? Math.round((correct / questionCount) * 100) : 0}%`
+            : `共${questionCount}题 还未作答`;
+          const title = `${lessonCode ? `${lessonCode} ` : ""}${attempt.practice?.title ?? "课堂作业"}`;
+          const highlighted = currentAttemptId === attempt.id;
+          return (
+            <button
+              key={attempt.id}
+              type="button"
+              onClick={() => openPractice(attempt)}
+              className="rounded-lg border text-left transition-colors"
+              style={{
+                padding: "14px 16px",
+                borderColor: highlighted ? "#0F62FE" : "#ECECEC",
+                backgroundColor: highlighted ? "rgba(15, 98, 254, 0.04)" : "#fff",
+              }}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <span className="font-medium" style={{ fontSize: 14, color: "#222" }}>{title}</span>
+                <span className="flex-shrink-0" style={{ fontSize: 14, color: done ? "#52C41A" : "#F16767" }}>
+                  {done ? "已完成" : "未完成"}
+                </span>
+              </div>
+              <p className="mt-3" style={{ fontSize: 14, color: "#555" }}>{stats}</p>
+            </button>
+          );
+        })}
       </div>
 
-      {picked && active
+      {picked && active && activeQuestion
         ? createPortal(
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
           <button
@@ -340,23 +387,45 @@ export function LessonPracticePanel({ courseId, lessonId }: { courseId: number; 
               <X className="size-4" />
             </button>
             <h3 id="practice-question-title" className="pr-8 text-lg font-semibold">
-              第 {active.index + 1} 题 · {questionTypeLabel(active.question.type)}
-              {active.question.score != null ? ` · ${active.question.score} 分` : ""}
+              第 {activeQuestionIndex + 1}/{activeQuestions.length} 题 · {questionTypeLabel(activeQuestion.type)}
+              {activeQuestion.score != null ? ` · ${activeQuestion.score} 分` : ""}
             </h3>
-            <p className="mt-2 whitespace-pre-wrap text-sm">{active.question.stem}</p>
+            <div className="mt-2 flex items-center gap-2">
+              <Button
+                variant="secondary"
+                disabled={activeQuestionIndex <= 0}
+                onClick={() => {
+                  const prev = activeQuestions[activeQuestionIndex - 1];
+                  if (prev) setPicked({ attemptId: active.id, questionId: prev.id });
+                }}
+              >
+                上一题
+              </Button>
+              <Button
+                variant="secondary"
+                disabled={activeQuestionIndex >= activeQuestions.length - 1}
+                onClick={() => {
+                  const next = activeQuestions[activeQuestionIndex + 1];
+                  if (next) setPicked({ attemptId: active.id, questionId: next.id });
+                }}
+              >
+                下一题
+              </Button>
+            </div>
+            <p className="mt-2 whitespace-pre-wrap text-sm">{activeQuestion.stem}</p>
             <QuestionForm
-              question={active.question}
-              locked={isAnswered(active.question)}
-              submitting={submittingId === active.question.id}
-              draft={drafts[active.question.id] ?? []}
-              onDraft={(value) => setDrafts((current) => ({ ...current, [active.question.id]: value }))}
-              onSubmit={() => void submitQuestion(active.attempt, active.question)}
+              question={activeQuestion}
+              locked={isAnswered(activeQuestion)}
+              submitting={submittingId === activeQuestion.id}
+              draft={drafts[activeQuestion.id] ?? []}
+              onDraft={(value) => setDrafts((current) => ({ ...current, [activeQuestion.id]: value }))}
+              onSubmit={() => void submitQuestion(active, activeQuestion)}
             />
           </div>
         </div>,
         document.body,
       )
       : null}
-    </Card>
+    </div>
   );
 }

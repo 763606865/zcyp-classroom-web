@@ -1,9 +1,7 @@
 "use client";
 
-import { Heart, Share2, Star } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
 import type { CourseInteraction } from "@/entities/learn";
@@ -22,7 +20,49 @@ function mergeInteraction(current: CourseInteraction, next?: CourseInteraction):
   return { ...current, ...next };
 }
 
-export function CourseInteractions({ courseId, title }: { courseId: number; title: string }) {
+function ActionItem({
+  icon,
+  activeIcon,
+  active,
+  count,
+  label,
+  disabled,
+  onClick,
+}: {
+  icon: string;
+  activeIcon: string;
+  active: boolean;
+  count?: number;
+  label: string;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      disabled={disabled}
+      onClick={onClick}
+      className="flex items-center gap-1.5 transition-opacity hover:opacity-80 disabled:opacity-50"
+      style={{ fontSize: 14, color: active ? "#0F62FE" : "#555" }}
+    >
+      <img src={active ? activeIcon : icon} alt="" width={16} height={16} className="flex-shrink-0" />
+      <span>{count ?? 0}</span>
+    </button>
+  );
+}
+
+export function CourseInteractions({
+  courseId,
+  title,
+  onOpenCourseware,
+  onOpenMobile,
+}: {
+  courseId: number;
+  title: string;
+  onOpenCourseware?: () => void;
+  onOpenMobile?: () => void;
+}) {
   const { toast } = useToast();
   const [state, setState] = useState<CourseInteraction>({
     favorite_count: 0,
@@ -32,6 +72,7 @@ export function CourseInteractions({ courseId, title }: { courseId: number; titl
     liked: false,
   });
   const [busy, setBusy] = useState<"favorite" | "like" | "share">();
+  const [shared, setShared] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [shareUrl, setShareUrl] = useState("");
 
@@ -88,6 +129,7 @@ export function CourseInteractions({ courseId, title }: { courseId: number; titl
 
   async function forward() {
     setBusy("share");
+    setShared(true);
     const pageUrl = typeof window === "undefined" ? "" : window.location.href;
     let copied = false;
     try {
@@ -116,21 +158,56 @@ export function CourseInteractions({ courseId, title }: { courseId: number; titl
 
   return (
     <>
-      <div className="mt-3 flex flex-wrap gap-2">
-        <Button variant={state.favorited ? "primary" : "secondary"} disabled={busy === "favorite"} onClick={() => void toggleFavorite()}>
-          <Star className={`mr-2 size-4 ${state.favorited ? "fill-current" : ""}`} />
-          {state.favorited ? "已收藏" : "收藏"}
-          {state.favorite_count ? ` ${state.favorite_count}` : ""}
-        </Button>
-        <Button variant={state.liked ? "primary" : "secondary"} disabled={busy === "like"} onClick={() => void toggleLike()}>
-          <Heart className={`mr-2 size-4 ${state.liked ? "fill-current" : ""}`} />
-          {state.liked ? "已点赞" : "点赞"}
-          {state.like_count ? ` ${state.like_count}` : ""}
-        </Button>
-        <Button variant="secondary" disabled={busy === "share"} onClick={() => void forward()}>
-          <Share2 className="mr-2 size-4" />
-          转发{state.share_count ? ` ${state.share_count}` : ""}
-        </Button>
+      <div className="flex flex-wrap items-center justify-between gap-y-2">
+        <div className="flex items-center gap-7">
+          <ActionItem
+            icon="/images/study/study-like.png"
+            activeIcon="/images/study/study-like-act.png"
+            active={Boolean(state.liked)}
+            count={state.like_count}
+            label="点赞"
+            disabled={busy === "like"}
+            onClick={() => void toggleLike()}
+          />
+          <ActionItem
+            icon="/images/study/study-collection.png"
+            activeIcon="/images/study/study-collection-act.png"
+            active={Boolean(state.favorited)}
+            count={state.favorite_count}
+            label="收藏"
+            disabled={busy === "favorite"}
+            onClick={() => void toggleFavorite()}
+          />
+          <ActionItem
+            icon="/images/study/study-share.png"
+            activeIcon="/images/study/study-share-act.png"
+            active={shared}
+            count={state.share_count}
+            label="分享"
+            disabled={busy === "share"}
+            onClick={() => void forward()}
+          />
+        </div>
+        <div className="flex items-center gap-7">
+          <button
+            type="button"
+            onClick={onOpenCourseware}
+            className="flex items-center gap-1.5 transition-opacity hover:opacity-80"
+            style={{ fontSize: 14, color: "#555" }}
+          >
+            <img src="/images/study/study-download.png" alt="" width={16} height={16} className="flex-shrink-0" />
+            <span>课件下载</span>
+          </button>
+          <button
+            type="button"
+            onClick={onOpenMobile}
+            className="flex items-center gap-1.5 transition-opacity hover:opacity-80"
+            style={{ fontSize: 14, color: "#555" }}
+          >
+            <img src="/images/study/study-phone.png" alt="" width={16} height={16} className="flex-shrink-0" />
+            <span>手机观看</span>
+          </button>
+        </div>
       </div>
       <Dialog open={shareOpen} onOpenChange={setShareOpen}>
         <DialogContent className="max-w-sm">

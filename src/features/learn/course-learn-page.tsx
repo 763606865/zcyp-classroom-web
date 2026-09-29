@@ -3,31 +3,66 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { QRCodeSVG } from "qrcode.react";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Spinner } from "@/components/ui/spinner";
 import type { CourseLearn } from "@/entities/learn";
 import { useAuth } from "@/features/auth/auth-provider";
-import { statusLabel } from "@/features/classroom/labels";
+import {
+  CourseChaptersContent,
+  DetailSidebar,
+  type ChapterGroupLike,
+  type ChapterLessonLike,
+} from "@/features/classroom/course-detail";
 import { getApiErrorMessage } from "@/lib/forms";
 import { applyLessonProgress, flattenLessons } from "./apply-progress";
-import { getCourseLearn, hasVodMedia, resolveLiveSessionId, updateLessonProgress, type LessonProgressBody } from "./api";
+import { getCourseLearn, hasVodMedia, pickLiveSession, resolveLiveSessionId, updateLessonProgress, type LessonProgressBody } from "./api";
 import { CourseChat } from "./course-chat";
 import { CourseComments } from "./course-comments";
+import { CourseHomeworks } from "./course-homeworks";
 import { CourseInteractions } from "./course-interactions";
 import { CourseTeacherCard } from "./course-teacher-card";
-import { CoursewarePanel } from "./courseware-panel";
+import { CoursewareDialog } from "./courseware-panel";
 import { LessonMediaFrame } from "./lesson-media-frame";
 import { LessonPracticePanel } from "./lesson-practice-panel";
 import { LiveLessonView } from "./live-lesson";
 import { StreamPlayer } from "./stream-player";
 import { VodPlayer } from "./vod-player";
 
-function lessonTypeLabel(type: string) {
-  if (type === "video") return "录播";
-  if (type === "live") return "直播";
-  return type;
+type LearnTab = "chapters" | "homeworks" | "comments";
+
+const learnTabs: { id: LearnTab; label: string }[] = [
+  { id: "chapters", label: "课程章节" },
+  { id: "homeworks", label: "课后作业" },
+  { id: "comments", label: "评论" },
+];
+
+function findLessonCode(data: CourseLearn, lessonId?: number): string | undefined {
+  if (lessonId == null) return undefined;
+  const chapters = data.chapters ?? [];
+  for (let ci = 0; ci < chapters.length; ci += 1) {
+    const lessons = chapters[ci].lessons ?? [];
+    const li = lessons.findIndex((lesson) => lesson.id === lessonId);
+    if (li >= 0) return `${ci + 1}.${li + 1}`;
+  }
+  return undefined;
+}
+
+function formatMetaTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  const pad = (num: number) => String(num).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function MetaItem({ icon, text }: { icon: string; text: string }) {
+  return (
+    <span className="flex items-center gap-1.5" style={{ fontSize: 14, color: "#555" }}>
+      <img src={icon} alt="" width={16} height={16} className="flex-shrink-0" />
+      {text}
+    </span>
+  );
 }
 
 export function CourseLearnView({ courseId }: { courseId: number }) {
@@ -38,6 +73,10 @@ export function CourseLearnView({ courseId }: { courseId: number }) {
   const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState<number>();
   const [resumeAt, setResumeAt] = useState(0);
+  const [activeTab, setActiveTab] = useState<LearnTab>("chapters");
+  const [coursewareOpen, setCoursewareOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileUrl, setMobileUrl] = useState("");
 
   useEffect(() => {
     if (status === "anonymous") router.replace(`/login?next=/account/courses/${courseId}`);
@@ -72,8 +111,14 @@ export function CourseLearnView({ courseId }: { courseId: number }) {
 
   const lessons = useMemo(() => (data ? flattenLessons(data) : []), [data]);
   const active = lessons.find((item) => item.id === activeId) ?? lessons[0];
-  const chapters = data?.chapters ?? [];
+  const chapters: ChapterGroupLike[] = data?.chapters ?? [];
+  const ungroupedLessons: ChapterLessonLike[] = data?.ungrouped_lessons ?? [];
   const liveSessionId = active && active.type === "live" ? resolveLiveSessionId(active) : null;
+  const liveSession = active ? pickLiveSession(active.live_sessions) : undefined;
+  const startAt = liveSession?.actual_start_at ?? liveSession?.scheduled_start_at ?? undefined;
+  const onlineRaw = liveSession ? (liveSession as { online_count?: unknown }).online_count : undefined;
+  const onlineCount = typeof onlineRaw === "number" ? onlineRaw : undefined;
+  const lessonCode = data ? findLessonCode(data, active?.id) : undefined;
   const activeRef = useRef(active);
   const sending = useRef(false);
   const queue = useRef<{ lessonId: number; body: LessonProgressBody }[]>([]);
@@ -126,6 +171,12 @@ export function CourseLearnView({ courseId }: { courseId: number }) {
     void flushProgress(lesson.id, body);
   }
 
+  function switchLesson(lesson: ChapterLessonLike) {
+    setActiveId(lesson.id);
+    const target = lessons.find((item) => item.id === lesson.id);
+    setResumeAt(target?.progress?.progress_seconds ?? 0);
+  }
+
   if (status === "loading" || status === "anonymous" || loading) {
     return <div className="flex justify-center py-20"><Spinner label="加载课程" /></div>;
   }
@@ -134,131 +185,158 @@ export function CourseLearnView({ courseId }: { courseId: number }) {
   }
 
   return (
-    <div className="grid gap-6">
-      <div>
-        <div className="grid items-stretch gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-          <div>
-            <p className="text-sm text-muted-foreground">
-              <Link href="/account" className="hover:text-primary">个人中心</Link>
-              <span> / 我的课程 / {data.course.title}</span>
-            </p>
-            <h1 className="mt-2 text-2xl font-semibold">{active?.title ?? data.course.title}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              总进度 {data.enrollment.progress ?? 0}% · 已完成 {data.summary.completed_lessons}/{data.summary.total_lessons} 课时
-            </p>
-            <CourseInteractions courseId={courseId} title={data.course.title} />
-          </div>
-          <CourseTeacherCard
-            teachers={
-              data.course.teachers?.length
-                ? data.course.teachers
-                : data.course.teacher
-                  ? [data.course.teacher]
-                  : []
-            }
-          />
-        </div>
-        <div className="mt-4 grid items-stretch gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-          <div className="min-w-0">
-            <LessonMediaFrame>
-            {!active ? (
-              <div className="flex aspect-video items-center justify-center rounded-xl bg-muted text-sm text-muted-foreground">暂无课时</div>
-            ) : active.type === "live" && liveSessionId ? (
-              <LiveLessonView
-                key={`${active.id}-${liveSessionId}`}
-                sessionId={liveSessionId}
-                initialSeconds={active.progress?.progress_seconds ?? 0}
-                onReport={reportLiveProgress}
+    <div style={{ backgroundColor: "#f6f8fc" }}>
+      <div className="mx-auto max-w-[1200px] px-4 md:px-6" style={{ paddingTop: 24, paddingBottom: 40 }}>
+        {/* ─── 上部分：播放区 + 讲师/聊天 ─── */}
+        <div className="flex flex-col lg:flex-row" style={{ gap: 16 }}>
+          {/* 左：标题 / 数据 / 播放器 / 操作条（同一白色区块，高度为基准，右侧匹配） */}
+          <div className="flex min-w-0 flex-1 flex-col rounded-lg bg-white lg:self-start" style={{ padding: "20px 24px 16px" }}>
+            <h1 className="font-bold" style={{ fontSize: 20, color: "#222" }}>
+              {`${data.course.title}${lessonCode ? `-${lessonCode}` : ""}`}
+            </h1>
+            <div className="mt-3 flex flex-wrap items-center gap-x-8 gap-y-2">
+              {startAt ? <MetaItem icon="/images/study/study-time.png" text={formatMetaTime(startAt)} /> : null}
+              {onlineCount != null ? (
+                <MetaItem icon="/images/study/study-view.png" text={`${onlineCount}人正在观看`} />
+              ) : null}
+            </div>
+
+            <div className="mt-4">
+              <LessonMediaFrame>
+                {!active ? (
+                  <div className="flex aspect-video items-center justify-center rounded-xl bg-muted text-sm text-muted-foreground">暂无课时</div>
+                ) : active.type === "live" && liveSessionId ? (
+                  <LiveLessonView
+                    key={`${active.id}-${liveSessionId}`}
+                    sessionId={liveSessionId}
+                    initialSeconds={active.progress?.progress_seconds ?? 0}
+                    onReport={reportLiveProgress}
+                  />
+                ) : active.type === "live" && !liveSessionId ? (
+                  <div className="flex aspect-video items-center justify-center rounded-xl bg-muted p-6 text-center text-sm text-muted-foreground">
+                    直播课时缺少场次信息，请稍后重试或联系教务。
+                  </div>
+                ) : active.type === "video" && hasVodMedia(active.media_id) ? (
+                  <VodPlayer
+                    key={active.id}
+                    courseId={courseId}
+                    lessonId={active.id}
+                    startAt={resumeAt}
+                    onProgress={(seconds) => reportVideoProgress(seconds)}
+                    onEnded={(seconds) => reportVideoProgress(seconds || active.duration_seconds || 0, true)}
+                  />
+                ) : active.media_url ? (
+                  <StreamPlayer
+                    key={active.id}
+                    src={active.media_url}
+                    startAt={resumeAt}
+                    onProgress={(seconds) => reportVideoProgress(seconds)}
+                    onEnded={(seconds) => reportVideoProgress(seconds || active.duration_seconds || 0, true)}
+                  />
+                ) : (
+                  <div className="flex aspect-video items-center justify-center rounded-xl bg-muted text-sm text-muted-foreground">
+                    该课时暂无播放地址（当前支持录播视频与直播）。
+                  </div>
+                )}
+              </LessonMediaFrame>
+            </div>
+
+            <div className="mt-4">
+              <CourseInteractions
+                courseId={courseId}
+                title={data.course.title}
+                onOpenCourseware={() => setCoursewareOpen(true)}
+                onOpenMobile={() => {
+                  setMobileUrl(typeof window === "undefined" ? "" : window.location.href);
+                  setMobileOpen(true);
+                }}
               />
-            ) : active.type === "live" && !liveSessionId ? (
-              <div className="flex aspect-video items-center justify-center rounded-xl bg-muted p-6 text-center text-sm text-muted-foreground">
-                直播课时缺少场次信息，请稍后重试或联系教务。
-              </div>
-            ) : active.type === "video" && hasVodMedia(active.media_id) ? (
-              <VodPlayer
+            </div>
+          </div>
+
+          {/* 右：讲师 + 聊天互动 */}
+          <aside className="flex w-full flex-col lg:w-[304px] lg:flex-shrink-0" style={{ gap: 16 }}>
+            <CourseTeacherCard
+              teachers={
+                data.course.teachers?.length
+                  ? data.course.teachers
+                  : data.course.teacher
+                    ? [data.course.teacher]
+                    : []
+              }
+            />
+            <CourseChat courseId={courseId} />
+          </aside>
+        </div>
+
+        {/* ─── 下部分：课堂作业 + Tab 区 + 右侧栏 ─── */}
+        <div className="mt-4 flex flex-col lg:flex-row" style={{ gap: 16 }}>
+          <div className="flex min-w-0 flex-1 flex-col" style={{ gap: 16 }}>
+            {active ? (
+              <LessonPracticePanel
                 key={active.id}
                 courseId={courseId}
                 lessonId={active.id}
-                startAt={resumeAt}
-                onProgress={(seconds) => reportVideoProgress(seconds)}
-                onEnded={(seconds) => reportVideoProgress(seconds || active.duration_seconds || 0, true)}
+                lessonCode={lessonCode}
               />
-            ) : active.media_url ? (
-              <StreamPlayer
-                key={active.id}
-                src={active.media_url}
-                startAt={resumeAt}
-                onProgress={(seconds) => reportVideoProgress(seconds)}
-                onEnded={(seconds) => reportVideoProgress(seconds || active.duration_seconds || 0, true)}
-              />
-            ) : (
-              <div className="flex aspect-video items-center justify-center rounded-xl bg-muted text-sm text-muted-foreground">
-                该课时暂无播放地址（当前支持录播视频与直播）。
-              </div>
-            )}
-            </LessonMediaFrame>
-            {active ? <LessonPracticePanel key={active.id} courseId={courseId} lessonId={active.id} /> : null}
-          </div>
-          <CourseChat courseId={courseId} />
-        </div>
-        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-          <div>
-            <CoursewarePanel courseId={courseId} lessonId={active?.id} />
-            <CourseComments courseId={courseId} />
-          </div>
-          <aside>
-            <Card className="p-4">
-              <h2 className="font-semibold">课时目录</h2>
-          <div className="mt-4 grid gap-4">
-            {chapters.map((chapter) => (
-              <div key={chapter.id}>
-                <p className="mb-2 text-xs font-medium text-muted-foreground">{chapter.title}</p>
-                <div className="grid gap-1">
-                  {chapter.lessons.map((lesson) => (
-                    <button
-                      key={lesson.id}
-                      type="button"
-                      onClick={() => {
-                        setActiveId(lesson.id);
-                        setResumeAt(lesson.progress?.progress_seconds ?? 0);
-                      }}
-                      className={`rounded-md px-3 py-2 text-left text-sm ${active?.id === lesson.id ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
-                    >
-                      <span className="block font-medium">{lesson.title}</span>
-                      <span className={active?.id === lesson.id ? "text-xs text-white/80" : "text-xs text-muted-foreground"}>
-                        {lessonTypeLabel(lesson.type)} · {statusLabel(lesson.progress?.status ?? "not_started")}
-                        {lesson.progress?.progress != null ? ` · ${lesson.progress.progress}%` : ""}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-            {(data.ungrouped_lessons?.length ?? 0) > 0 ? (
-              <div>
-                <p className="mb-2 text-xs font-medium text-muted-foreground">其他课时</p>
-                {data.ungrouped_lessons?.map((lesson) => (
+            ) : null}
+
+            <div className="rounded-lg bg-white" style={{ padding: "16px 24px 24px" }}>
+              {/* Tabs */}
+              <div className="flex border-b" style={{ borderColor: "#eee" }}>
+                {learnTabs.map((tab, index) => (
                   <button
-                    key={lesson.id}
+                    key={tab.id}
                     type="button"
-                    onClick={() => {
-                      setActiveId(lesson.id);
-                      setResumeAt(lesson.progress?.progress_seconds ?? 0);
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`pb-3 transition-colors ${index > 0 ? "ml-8" : ""}`}
+                    style={{
+                      fontSize: 16,
+                      fontWeight: activeTab === tab.id ? 700 : 400,
+                      color: activeTab === tab.id ? "#0F62FE" : "#222",
+                      borderBottom: activeTab === tab.id ? "2px solid #0F62FE" : "2px solid transparent",
                     }}
-                    className={`rounded-md px-3 py-2 text-left text-sm ${active?.id === lesson.id ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
                   >
-                    <span className="block font-medium">{lesson.title}</span>
-                    <span className="text-xs opacity-80">{lessonTypeLabel(lesson.type)}</span>
+                    {tab.label}
                   </button>
                 ))}
               </div>
-            ) : null}
+
+              {/* Tab Content */}
+              <div className="mt-5">
+                {activeTab === "chapters" ? (
+                  <CourseChaptersContent
+                    chapters={chapters}
+                    ungroupedLessons={ungroupedLessons}
+                    activeLessonId={active?.id}
+                    onLessonClick={switchLesson}
+                  />
+                ) : null}
+                {activeTab === "homeworks" ? <CourseHomeworks courseId={courseId} /> : null}
+                {activeTab === "comments" ? <CourseComments courseId={courseId} /> : null}
+              </div>
+            </div>
           </div>
-            </Card>
-            <Link href="/account" className="mt-4 inline-block"><Button variant="secondary">返回个人中心</Button></Link>
+
+          {/* 右侧栏：二维码 / 常见问题 / 为你推荐 */}
+          <aside className="w-full lg:w-[304px] lg:flex-shrink-0">
+            <DetailSidebar />
           </aside>
         </div>
       </div>
+
+      {/* 弹窗：课件下载 / 手机观看 */}
+      <CoursewareDialog courseId={courseId} open={coursewareOpen} onOpenChange={setCoursewareOpen} />
+      <Dialog open={mobileOpen} onOpenChange={setMobileOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogTitle>手机观看</DialogTitle>
+          <DialogDescription>手机扫码，随时随地继续学习</DialogDescription>
+          <div className="mt-4 flex justify-center rounded-card border border-border bg-white p-4">
+            {mobileUrl ? <QRCodeSVG value={mobileUrl} size={200} level="M" marginSize={2} /> : null}
+          </div>
+          {mobileUrl ? <p className="mt-4 break-all text-center text-xs text-muted-foreground">{mobileUrl}</p> : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

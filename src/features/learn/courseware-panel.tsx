@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { Spinner } from "@/components/ui/spinner";
 import type { Courseware } from "@/entities/learn";
 import { getApiErrorMessage } from "@/lib/forms";
 import { getCoursewares } from "./api";
@@ -24,7 +26,7 @@ function canDownload(item: Courseware) {
   return Boolean(item.download_url) && item.can_acquire !== false;
 }
 
-function CoursewareRow({ item }: { item: Courseware }) {
+export function CoursewareRow({ item }: { item: Courseware }) {
   const locked = item.requires_purchase || !canDownload(item);
   const meta = [
     item.file_type?.toUpperCase(),
@@ -53,6 +55,62 @@ function CoursewareRow({ item }: { item: Courseware }) {
         <Button variant="secondary" disabled>暂不可下载</Button>
       )}
     </div>
+  );
+}
+
+export function CoursewareDialog({
+  courseId,
+  open,
+  onOpenChange,
+}: {
+  courseId: number;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [items, setItems] = useState<Courseware[]>([]);
+  const [error, setError] = useState<string>();
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    void getCoursewares(courseId)
+      .then((result) => {
+        if (cancelled) return;
+        setItems(result.data);
+        setLoaded(true);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setError(getApiErrorMessage(err, "课件加载失败"));
+        setLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [courseId, open]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[80vh] max-w-lg overflow-y-auto">
+        <DialogTitle>课件下载</DialogTitle>
+        <DialogDescription>点击下载按钮即可保存课件到本地</DialogDescription>
+        {!loaded ? (
+          <div className="mt-4"><Spinner label="加载课件" /></div>
+        ) : null}
+        {error ? <p className="mt-4 text-sm text-muted-foreground">{error}</p> : null}
+        {loaded && !error && items.length === 0 ? (
+          <p className="mt-4 text-sm text-muted-foreground">暂无可下载的课件。</p>
+        ) : null}
+        {items.length > 0 ? (
+          <div className="mt-4 grid gap-2">
+            {items.map((item) => (
+              <CoursewareRow key={item.id} item={item} />
+            ))}
+          </div>
+        ) : null}
+      </DialogContent>
+    </Dialog>
   );
 }
 
